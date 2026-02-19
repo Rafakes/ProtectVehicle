@@ -1,0 +1,6 @@
+name=Protect Vehicle
+id=ProtectVehicle
+description=Server-safe vehicle claim and protection system for B42. Compatible with AVCS save data. Supports multiplayer, rate limiting, admin tools, per-vehicle logs, and vehicle document requirement.
+poster=poster.png
+category=features
+version=1.0.0

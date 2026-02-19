@@ -1,0 +1,73 @@
+VERSION = 1,
+
+option ProtectVehicle.MaxVehicle
+{
+		type = integer, min = 1, max = 999, default = 3,
+		page = ProtectVehicle, translation = PV_MaxVehicle,
+}
+
+option ProtectVehicle.ClaimTimeoutHours
+{
+		type = integer, min = 0, max = 99999, default = 240,
+		page = ProtectVehicle, translation = PV_ClaimTimeoutHours,
+}
+
+option ProtectVehicle.AllowFaction
+{
+		type = boolean, default = true,
+		page = ProtectVehicle, translation = PV_AllowFaction,
+}
+
+option ProtectVehicle.AllowSafehouse
+{
+		type = boolean, default = true,
+		page = ProtectVehicle, translation = PV_AllowSafehouse,
+}
+
+option ProtectVehicle.TrunkParts
+{
+		type = string, default = TrunkDoor;DoorRear;TrailerTrunk;TruckBed;TruckBedOpen,
+		page = ProtectVehicle, translation = PV_TrunkParts,
+}
+
+option ProtectVehicle.CommandCooldownMs
+{
+		type = integer, min = 100, max = 10000, default = 500,
+		page = ProtectVehicle, translation = PV_CommandCooldownMs,
+}
+
+option ProtectVehicle.MaxRequestsPer10s
+{
+		type = integer, min = 1, max = 100, default = 10,
+		page = ProtectVehicle, translation = PV_MaxRequestsPer10s,
+}
+
+option ProtectVehicle.AdminTeleportEnabled
+{
+		type = boolean, default = true,
+		page = ProtectVehicle, translation = PV_AdminTeleportEnabled,
+}
+
+option ProtectVehicle.EnablePerVehicleLogs
+{
+		type = boolean, default = true,
+		page = ProtectVehicle, translation = PV_EnablePerVehicleLogs,
+}
+
+option ProtectVehicle.RequireVehicleDocumentForClaim
+{
+		type = boolean, default = false,
+		page = ProtectVehicle, translation = PV_RequireVehicleDocumentForClaim,
+}
+
+option ProtectVehicle.VehicleDocumentItemType
+{
+		type = string, default = ProtectVehicle.VehicleDocument,
+		page = ProtectVehicle, translation = PV_VehicleDocumentItemType,
+}
+
+option ProtectVehicle.ConsumeVehicleDocumentOnClaim
+{
+		type = boolean, default = false,
+		page = ProtectVehicle, translation = PV_ConsumeVehicleDocumentOnClaim,
+}
