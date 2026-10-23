@@ -1,0 +1,10 @@
+version=1
+id=3725360861
+title=Protect Vehicle [B42.18 - MP]
+description=Protect Vehicle adds a server-safe vehicle claim and protection system for Project Zomboid Build 42 multiplayer servers.
+description=
+description=Features include multiplayer-safe vehicle protection, rate limiting, admin tools, per-vehicle logs, and vehicle document requirements.
+description=
+description=Do not copy (modpack), modify, redistribute, or repackage this mod without explicit permission from the creator.
+tags=Build 42;Multiplayer;Vehicles;QoL
+visibility=unlisted

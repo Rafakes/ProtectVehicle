@@ -1,0 +1,8 @@
+{
+    "ContextMenu_PV_ClaimVehicle": "Proteger Veículo",
+    "ContextMenu_PV_UnclaimVehicle": "Remover Proteção",
+    "ContextMenu_PV_ManageVehicle": "Gerir Permissões",
+    "ContextMenu_PV_OwnedBy": "Proprietário: %1",
+    "ContextMenu_PV_MyVehicles": "Os Meus Veículos Protegidos",
+    "ContextMenu_PV_AdminPanel": "[Admin] Painel de Proteção de Veículos"
+}

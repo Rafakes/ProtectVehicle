@@ -1,0 +1,23 @@
+/* ProtectVehicle - PV_Recipes.txt                                   */
+/* Receita separada do item (obrigatorio B42).                       */
+/* module Base necessario para compatibilidade MP dedicado.          */
+
+module Base
+{
+    craftRecipe Craft_VehicleDocument
+    {
+        timedAction = Making,
+        time        = 25,
+        Tags        = AnySurfaceCraft,
+        category    = Miscellaneous,
+        inputs
+        {
+            item 1 [Base.SheetPaper2],
+            item 1 tags[base:write] mode:keep,
+        }
+        outputs
+        {
+            item 1 Base.VehicleDocument,
+        }
+    }
+}

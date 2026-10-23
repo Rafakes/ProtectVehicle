@@ -1,0 +1,157 @@
+VERSION = 1,
+
+option ProtectVehicle.MaxVehicle
+{
+		type = integer, min = 1, max = 999, default = 3,
+		page = ProtectVehicle, translation = PV_MaxVehicle,
+}
+
+option ProtectVehicle.SupporterRoleNames
+{
+		type = string, default = Apoiador,
+		page = ProtectVehicle, translation = PV_SupporterRoleNames,
+}
+
+option ProtectVehicle.MaxVehicleSupporter
+{
+		type = integer, min = 1, max = 999, default = 6,
+		page = ProtectVehicle, translation = PV_MaxVehicleSupporter,
+}
+
+option ProtectVehicle.ClaimTimeoutHours
+{
+		type = integer, min = 0, max = 99999, default = 240,
+		page = ProtectVehicle, translation = PV_ClaimTimeoutHours,
+}
+
+option ProtectVehicle.AllowFaction
+{
+		type = boolean, default = true,
+		page = ProtectVehicle, translation = PV_AllowFaction,
+}
+
+option ProtectVehicle.AllowSafehouse
+{
+		type = boolean, default = true,
+		page = ProtectVehicle, translation = PV_AllowSafehouse,
+}
+
+option ProtectVehicle.TrunkParts
+{
+		type = string, default = TrunkDoor;DoorRear;TrailerTrunk;TruckBed;TruckBedOpen,
+		page = ProtectVehicle, translation = PV_TrunkParts,
+}
+
+option ProtectVehicle.CommandCooldownMs
+{
+		type = integer, min = 100, max = 10000, default = 500,
+		page = ProtectVehicle, translation = PV_CommandCooldownMs,
+}
+
+option ProtectVehicle.MaxRequestsPer10s
+{
+		type = integer, min = 1, max = 100, default = 10,
+		page = ProtectVehicle, translation = PV_MaxRequestsPer10s,
+}
+
+option ProtectVehicle.AdminTeleportEnabled
+{
+		type = boolean, default = true,
+		page = ProtectVehicle, translation = PV_AdminTeleportEnabled,
+}
+
+option ProtectVehicle.EnablePerVehicleLogs
+{
+		type = boolean, default = true,
+		page = ProtectVehicle, translation = PV_EnablePerVehicleLogs,
+}
+
+option ProtectVehicle.RequireVehicleDocumentForClaim
+{
+		type = boolean, default = false,
+		page = ProtectVehicle, translation = PV_RequireVehicleDocumentForClaim,
+}
+
+option ProtectVehicle.VehicleDocumentItemType
+{
+		type = string, default = Base.VehicleDocument,
+		page = ProtectVehicle, translation = PV_VehicleDocumentItemType,
+}
+
+option ProtectVehicle.ConsumeVehicleDocumentOnClaim
+{
+		type = boolean, default = false,
+		page = ProtectVehicle, translation = PV_ConsumeVehicleDocumentOnClaim,
+}
+
+option ProtectVehicle.ReturnDocumentOnUnclaim
+{
+		type = boolean, default = true,
+		page = ProtectVehicle, translation = PV_ReturnDocumentOnUnclaim,
+}
+
+option ProtectVehicle.EnableCoordSyncLogs
+{
+		type = boolean, default = false,
+		page = ProtectVehicle, translation = PV_EnableCoordSyncLogs,
+}
+
+option ProtectVehicle.EnableVerboseConsoleLogs
+{
+		type = boolean, default = false,
+		page = ProtectVehicle, translation = PV_EnableVerboseConsoleLogs,
+}
+
+option ProtectVehicle.RequireConversionDocument
+{
+		type = boolean, default = false,
+		page = ProtectVehicleDocuments, translation = PV_RequireConversionDocument,
+}
+
+option ProtectVehicle.RequireKeyForConversion
+{
+		type = boolean, default = false,
+		page = ProtectVehicleDocuments, translation = PV_RequireKeyForConversion,
+}
+
+option ProtectVehicle.AllowHotwiredForConversion
+{
+		type = boolean, default = true,
+		page = ProtectVehicleDocuments, translation = PV_AllowHotwiredForConversion,
+}
+
+option ProtectVehicle.MaxVehicleDocuments
+{
+		type = integer, min = 0, max = 99, default = 0,
+		page = ProtectVehicleDocuments, translation = PV_MaxVehicleDocuments,
+}
+
+option ProtectVehicle.DocumentValidityHours
+{
+		type = integer, min = 0, max = 99999, default = 0,
+		page = ProtectVehicleDocuments, translation = PV_DocumentValidityHours,
+}
+
+option ProtectVehicle.MinVehicleConditionForConversion
+{
+		type = integer, min = 0, max = 100, default = 0,
+		page = ProtectVehicleDocuments, translation = PV_MinVehicleConditionForConversion,
+}
+
+option ProtectVehicle.ConsumeDocumentOnSpawn
+{
+		type = boolean, default = false,
+		page = ProtectVehicleDocuments, translation = PV_ConsumeDocumentOnSpawn,
+}
+
+option ProtectVehicle.SpawnMaxDistance
+{
+		type = integer, min = 2, max = 80, default = 12,
+		page = ProtectVehicleDocuments, translation = PV_SpawnMaxDistance,
+}
+
+option ProtectVehicle.AllowShopTransfer
+{
+		type = boolean, default = true,
+		page = ProtectVehicleDocuments, translation = PV_AllowShopTransfer,
+}

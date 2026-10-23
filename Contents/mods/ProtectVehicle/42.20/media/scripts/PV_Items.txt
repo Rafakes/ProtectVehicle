@@ -1,0 +1,41 @@
+/* ProtectVehicle - PV_Items.txt                          */
+/* Padrao identico ao AACS (module Base, DisplayName).    */
+
+module Base
+{
+    item VehicleDocument
+    {
+        DisplayName             = Vehicle Document,
+        DisplayCategory         = Literature,
+        ItemType                = base:normal,
+        Weight                  = 0.1,
+        Icon                    = VehicleDocument,
+        StaticModel             = SheetPaper2,
+        WorldStaticModel        = SheetPaper2_Ground,
+        CanBeWrite              = false,
+        BoredomChange           = 0,
+        StressChange            = 0,
+        UnhappyChange           = 0,
+    }
+}
+
+module ProtectVehicle
+{
+    /* Vehicle title document - stores a complete vehicle snapshot.      */
+    /* Empty (no PV_Snapshot ModData): craftable blank sheet.            */
+    /* Filled (has PV_Snapshot ModData): represents a real vehicle.      */
+    item VehicleConversionDoc
+    {
+        DisplayName             = Vehicle Title,
+        DisplayCategory         = Literature,
+        ItemType                = base:normal,
+        Weight                  = 0.1,
+        Icon                    = VehicleTitleDocument,
+        StaticModel             = SheetPaper2,
+        WorldStaticModel        = SheetPaper2_Ground,
+        CanBeWrite              = false,
+        BoredomChange           = 0,
+        StressChange            = 0,
+        UnhappyChange           = 0,
+    }
+}
