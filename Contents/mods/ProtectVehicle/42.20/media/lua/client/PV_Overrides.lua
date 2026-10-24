@@ -746,11 +746,14 @@ do
         end
     end
 
-    function ISVehicleMenu.FillMenuOutsideVehicle(player, context, vehicle, test)
-        _pvOrigFillMenuFull(player, context, vehicle, test)
+    -- Aplica os bloqueios de permissão no context menu de um veículo.
+    -- Exposto em PV para que PV_MenuCompat.lua possa rodar os mesmos bloqueios
+    -- quando outro mod de veículo (ex.: motos) substitui FillMenuOutsideVehicle
+    -- e este override nunca é chamado naquele veículo.
+    function PV.applyVehicleMenuBlocks(playerObj, context, vehicle)
+        if not playerObj or not context or not vehicle then return end
 
-        local playerObj = type(player) == "number" and getSpecificPlayer(player) or player
-        if not playerObj or not vehicle then return end
+        context.pvMenuBlocksApplied = true
 
         if not _isVehicleContainerAllowed(playerObj, vehicle) then
             _blockMenuOptions(context, _isContainerMenuOption)
@@ -762,6 +765,15 @@ do
 
         -- NOTE: mechanics is in the radial menu (addSlice), not the context menu.
         -- Blocking is handled via ISVehicleMenu.onMechanic hook below.
+    end
+
+    function ISVehicleMenu.FillMenuOutsideVehicle(player, context, vehicle, test)
+        _pvOrigFillMenuFull(player, context, vehicle, test)
+
+        local playerObj = type(player) == "number" and getSpecificPlayer(player) or player
+        if not playerObj or not vehicle then return end
+
+        PV.applyVehicleMenuBlocks(playerObj, context, vehicle)
     end
 end
 

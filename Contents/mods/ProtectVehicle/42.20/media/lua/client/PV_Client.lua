@@ -173,6 +173,17 @@ local function PV_addContextOption(context, text, fn)
 end
 
 local function PV_addVehicleOptions(playerObj, context, vehicle)
+    if not playerObj or not context or not vehicle then return end
+
+    -- Marca o menu como já tratado pelo PV. PV_MenuCompat.lua usa essa flag para
+    -- injetar as opções só quando outro mod de veículo (ex.: motos) substituiu
+    -- ISVehicleMenu.FillMenuOutsideVehicle e este caminho nunca rodou.
+    context.pvVehicleOptionsAdded = true
+
+    -- Diagnóstico (PV.diagVehicleMenu): registra qual caminho montou o menu.
+    PV._pvLastMenuPath = "normal (ISVehicleMenu.FillMenuOutsideVehicle)"
+    PV._pvLastMenuVehicle = vehicle:getScript() and vehicle:getScript():getFullName() or "?"
+
     local vname = vehicle and vehicle:getScript() and vehicle:getScript():getName() or ""
     if string.match(string.lower(vname), "burnt") or string.match(string.lower(vname), "smashed") then
         return
@@ -236,6 +247,9 @@ local function PV_addVehicleOptions(playerObj, context, vehicle)
         end
     end
 end
+
+-- Exposto para PV_MenuCompat.lua (injeção tardia via OnFillWorldObjectContextMenu)
+PV.addVehicleContextOptions = PV_addVehicleOptions
 
 if not PV.oFillMenuOutsideVehicle then
     PV.oFillMenuOutsideVehicle = ISVehicleMenu.FillMenuOutsideVehicle
