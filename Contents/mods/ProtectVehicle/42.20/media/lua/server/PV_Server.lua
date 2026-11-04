@@ -62,6 +62,15 @@ function PV.InitDB()
         end
     end
 
+    -- Aluguel de slots (chave propria tambem: PV.getClaimCount conta toda
+    -- chave de PV.dbByPlayerID[user], entao aluguel la viraria "veiculo").
+    if PV.Slots and PV.Slots.ensureStore then
+        local okS, errS = pcall(PV.Slots.ensureStore)
+        if not okS then
+            print("[PV] PVClaimSlots: falha ao inicializar: " .. tostring(errS))
+        end
+    end
+
     -- Garante que são tabelas (ModData pode retornar nil em server dedicado limpo)
     if type(PV.dbByVehicleSQLID) ~= "table" then
         PV.dbByVehicleSQLID = {}
@@ -388,6 +397,13 @@ function PV.ServerUnclaimVehicle(playerObj, sqlid, isTimeout, reason)
 
     PV.clearPlayerVehicleIndex(owner, sqlid)
     PV.clearVehicleDBEntry(sqlid)
+
+    -- Desproteger por conta propria pode tirar o jogador de cima do limite e
+    -- encerrar a carencia. So no unclaim manual: o release por carencia
+    -- vencida ja reconcilia sozinho no fim do processamento.
+    if not isTimeout and PV.Slots and PV.Slots.onClaimCountChanged then
+        pcall(PV.Slots.onClaimCountChanged, owner)
+    end
 
     ModData.add("PVByVehicleSQLID", PV.dbByVehicleSQLID)
     ModData.add("PVByPlayerID", PV.dbByPlayerID)
@@ -938,6 +954,15 @@ PV.OnClientCommand = function(module, command, player, args)
         end
         ModData.add("PVByPlayerID", PV.dbByPlayerID)
 
+        -- Vencimento pode ter acontecido com ele offline: processa antes de
+        -- entregar qualquer estado, senao ele veria numeros ja vencidos.
+        if PV.Slots and PV.Slots.processExpiries then
+            -- Primeiro o patamar: o calculo offline depende dele.
+            pcall(PV.Slots.rememberTier, player)
+            pcall(PV.Slots.processExpiries)
+            pcall(PV.Slots.sendTo, player)
+        end
+
         -- Entrega a caixa de avisos: e aqui que o jogador descobre o que
         -- aconteceu com os carros dele enquanto estava fora.
         if PV.Notices and PV.Notices.sendTo then
@@ -954,6 +979,26 @@ PV.OnClientCommand = function(module, command, player, args)
                     })
                 end
             end
+        end
+
+    elseif command == "slotsRequest" then
+        if PV.Slots and PV.Slots.sendTo then
+            pcall(PV.Slots.sendTo, player)
+        end
+
+    elseif command == "slotsRent" then
+        if PV.Slots and PV.Slots.rent then
+            pcall(PV.Slots.rent, player, args and args.pack)
+        end
+
+    elseif command == "slotsRenew" then
+        if PV.Slots and PV.Slots.renew then
+            pcall(PV.Slots.renew, player, args and args.id)
+        end
+
+    elseif command == "slotsAuto" then
+        if PV.Slots and PV.Slots.setAuto then
+            pcall(PV.Slots.setAuto, player, args and args.id, args and args.enabled == true)
         end
 
     elseif command == "noticesRequest" then
@@ -1390,4 +1435,11 @@ Events.OnClientCommand.Add(PV.OnClientCommand)
 Events.EveryOneMinute.Add(PV_PollPlayerDisconnect)
 Events.EveryOneMinute.Add(PV_ScanLoadedClaimedVehicles)
 Events.EveryTenMinutes.Add(PV.CheckTimeouts)
+-- Envelope em vez do metodo direto: a checagem acontece na hora da chamada,
+-- entao a ordem de carregamento dos arquivos de server nao importa.
+Events.EveryTenMinutes.Add(function()
+    if PV.Slots and PV.Slots.processExpiries then
+        pcall(PV.Slots.processExpiries)
+    end
+end)
 -- Events.OnVehicleAdded NÃO existe na B42 - removido.

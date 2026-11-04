@@ -142,5 +142,13 @@
     "IGUI_PV_Notice_AdminUnclaim": "%2 (staff) released the protection on your %1",
     "IGUI_PV_Notice_TransferIn": "%2 transferred a %1 to you",
     "IGUI_PV_Notice_TransferOut": "You transferred your %1 to %2",
-    "IGUI_PV_Notice_LoginSummary": "You have %1 new notice(s) about your vehicles"
+    "IGUI_PV_Notice_LoginSummary": "You have %1 new notice(s) about your vehicles",
+    "IGUI_PV_Slots_MaxReached": "You already hold the maximum of %1 rented slots",
+    "IGUI_PV_Slots_NoFunds": "Not enough points: you need %1",
+    "IGUI_PV_Notice_SlotRenewed": "Your rental of %1 slot(s) renewed for %2",
+    "IGUI_PV_Notice_SlotNoFunds": "Could not renew %1 slot(s): you were short of %2",
+    "IGUI_PV_Notice_SlotExpired": "Your rental of %1 slot(s) has expired",
+    "IGUI_PV_Notice_SlotGraceStart": "Your %1 loses its protection in %2h unless you rent a slot or release another vehicle",
+    "IGUI_PV_Notice_SlotGraceOver": "You are back within your limit: no vehicle at risk",
+    "IGUI_PV_Notice_SlotReleased": "Your %1 lost its protection: the rented slot expired"
 }

@@ -141,5 +141,13 @@
     "IGUI_PV_Notice_AdminUnclaim": "%2 (staff) liberou a proteção do seu %1",
     "IGUI_PV_Notice_TransferIn": "%2 transferiu um %1 para você",
     "IGUI_PV_Notice_TransferOut": "Você transferiu o seu %1 para %2",
-    "IGUI_PV_Notice_LoginSummary": "Você tem %1 aviso(s) novo(s) sobre os seus veículos"
+    "IGUI_PV_Notice_LoginSummary": "Você tem %1 aviso(s) novo(s) sobre os seus veículos",
+    "IGUI_PV_Slots_MaxReached": "Você já está no máximo de %1 slots alugados",
+    "IGUI_PV_Slots_NoFunds": "Pontos insuficientes: você precisa de %1",
+    "IGUI_PV_Notice_SlotRenewed": "O seu aluguel de %1 slot(s) foi renovado por %2",
+    "IGUI_PV_Notice_SlotNoFunds": "Não deu para renovar %1 slot(s): faltou saldo de %2",
+    "IGUI_PV_Notice_SlotExpired": "O seu aluguel de %1 slot(s) venceu",
+    "IGUI_PV_Notice_SlotGraceStart": "O seu %1 perde a proteção em %2h se você não alugar um slot ou desproteger outro veículo",
+    "IGUI_PV_Notice_SlotGraceOver": "Você voltou para dentro do limite: nenhum veículo em risco",
+    "IGUI_PV_Notice_SlotReleased": "O seu %1 perdeu a proteção: o slot alugado venceu"
 }

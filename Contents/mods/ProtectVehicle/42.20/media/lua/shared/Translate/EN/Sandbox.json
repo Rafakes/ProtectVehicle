@@ -72,5 +72,17 @@
     "Sandbox_PV_NoticesEnabled_tooltip": "Stores what happened to a player's vehicles and delivers it when they log in. Without this, every alert is a halo note that only exists if the owner is online at that exact second, so nothing that happens while they are away ever reaches them. Two events reach the owner only through this box: a claim expiring from inactivity, and staff releasing their vehicle.",
     "Sandbox_PV_NoticeRetentionDays_tooltip": "How long a notice is kept on the server before it is dropped.",
     "Sandbox_PV_NoticeMaxPerPlayer_tooltip": "Hard cap per player, oldest dropped first. This list lives in global ModData, which is loaded and saved whole, so an unbounded list would cost save size and network.",
-    "Sandbox_PV_NoticeGroupMinutes_tooltip": "Repeats of the same event by the same player on the same vehicle inside this window become one entry with a count, instead of dozens of identical lines. The count is what separates someone who walked past from someone who spent an hour working on the vehicle."
+    "Sandbox_PV_NoticeGroupMinutes_tooltip": "Repeats of the same event by the same player on the same vehicle inside this window become one entry with a count, instead of dozens of identical lines. The count is what separates someone who walked past from someone who spent an hour working on the vehicle.",
+    "Sandbox_PV_EnableSlotRental": "Allow Renting Claim Slots",
+    "Sandbox_PV_SlotRentDays": "Rental Length (days)",
+    "Sandbox_PV_SlotRentPrice1": "Price: 1 Slot",
+    "Sandbox_PV_SlotRentPrice2": "Price: 2 Slots",
+    "Sandbox_PV_MaxRentedSlots": "Max Rented Slots Per Player",
+    "Sandbox_PV_SlotGraceHours": "Grace After Expiry (hours)",
+    "Sandbox_PV_EnableSlotRental_tooltip": "Lets players rent extra claim slots with Server Shop points. Rented slots add on top of the role limit, they do not replace it. Needs the Server Shop mod on the server: without it the whole feature stays off and the slots window only shows the limits.",
+    "Sandbox_PV_SlotRentDays_tooltip": "How long a rental lasts, in real days. Renewing early adds to the time left instead of throwing it away.",
+    "Sandbox_PV_SlotRentPrice1_tooltip": "Shop points charged for a 1-slot rental, and for each renewal of it.",
+    "Sandbox_PV_SlotRentPrice2_tooltip": "Shop points charged for a 2-slot rental, and for each renewal of it. Usually cheaper per slot than two single rentals, so the bundle is worth buying.",
+    "Sandbox_PV_MaxRentedSlots_tooltip": "Ceiling on how many slots one player can hold on rent at the same time, across all their rentals.",
+    "Sandbox_PV_SlotGraceHours_tooltip": "When a rental expires and the player is over the limit, nothing is released yet: they keep everything for this long and are told what they will lose and when. Only if they still have not renewed or released a vehicle themselves is the most recently claimed one unprotected. Expiry almost always happens while the player is offline, so with 0 here they lose a vehicle with no chance to react."
 }

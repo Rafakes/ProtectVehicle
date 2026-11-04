@@ -28,6 +28,67 @@ ficam nas paginas **Protect Vehicle** e **Protect Vehicle - Documents** do Sandb
 - **Permissoes de um veiculo**: botao direito no veiculo, ou pelo painel do dono.
 - **Avisos dos meus veiculos**: botao **Avisos** no pe da lista de veiculos,
   no painel do dono. O rotulo mostra quantos avisos ainda nao foram lidos.
+- **Slots de protecao**: botao **Slots**, ao lado de Avisos. Mostra os limites
+  e, se o servidor permitir, o aluguel de slots extras.
+
+## Slots de protecao
+
+A janela **Slots** mostra, sempre, os dois patamares de limite lado a lado -
+quanto um jogador comum pode proteger e quanto um apoiador pode - com o seu em
+destaque. Assim da para ver o que se ganha virando apoiador sem precisar
+perguntar a ninguem.
+
+### Aluguel de slots
+
+Opcional, e so funciona com o mod **Server Shop** no servidor. O jogador aluga
+slots extras pagando com os pontos da loja; os slots alugados **somam** em cima
+do limite da role, nao substituem.
+
+- Dois pacotes, com preco e duracao configuraveis: 1 slot e 2 slots, por padrao
+  200 e 300 pontos por 7 dias reais.
+- Teto por jogador (`MaxRentedSlots`), somando todos os alugueis dele.
+- **Renovar** cobra de novo e soma o tempo ao que ainda faltava, entao quem
+  renova cedo nao perde dias.
+- **Auto-renovar** por aluguel: no vencimento, se o saldo cobrir o preco, cobra
+  e renova sozinho, inclusive com o jogador offline (o saldo da loja e por
+  conta, nao por personagem). Se o saldo nao cobrir, o aluguel vence e ele
+  recebe um aviso dizendo que faltou saldo. Nunca deixa o saldo negativo.
+
+### O que acontece quando o aluguel vence
+
+Esta e a parte que pode custar um veiculo, entao vale ler com atencao.
+
+Se o aluguel vence e o jogador fica com mais veiculos protegidos do que o
+limite, **nada e solto na hora**. Comeca uma carencia de `SlotGraceHours`
+(24h de fabrica) em que:
+
+1. Ele continua com todos os veiculos.
+2. Recebe um aviso na caixa dizendo qual veiculo esta em risco e quanto tempo
+   falta.
+3. O botao **Slots** no painel fica vermelho, e a janela mostra o prazo.
+
+Se ate o fim da carencia ele nao alugar de novo nem desproteger nada por conta
+propria, o veiculo **protegido mais recentemente** perde a protecao, e ele
+recebe outro aviso dizendo qual foi.
+
+A carencia existe porque o vencimento quase sempre acontece com o jogador
+offline: sem ela, ele perderia o carro sem nenhuma chance de reagir. Pondo
+`SlotGraceHours` em 0 o comportamento vira "solta na hora".
+
+Alugar, renovar ou desproteger um veiculo durante a carencia encerra a carencia
+na hora, se isso trouxer o jogador de volta para dentro do limite.
+
+### Sem o Server Shop
+
+O mod **nao** declara dependencia do Server Shop. Se ele nao estiver no
+servidor, ou se `EnableSlotRental` estiver desligado, o aluguel inteiro fica
+desligado: a janela de slots continua funcionando e mostrando os limites, mas
+sem os botoes de alugar. Nada mais no mod muda.
+
+O saldo nunca e lido ou escrito direto no ModData da loja: usamos o modulo
+`ServerShopBalanceCore` dela, para o arredondamento, o cache por personagem e a
+estatistica de "total ganho" continuarem sendo responsabilidade de quem e dono
+deles.
 
 ## Caixa de avisos
 
@@ -48,6 +109,8 @@ entra nela:
 | Alguem transferiu um veiculo para voce, ou voce transferiu o seu | So como halo, perdido se offline |
 | Um veiculo deixou de ser seu por tempo sem entrar (`ClaimTimeoutHours`) | Nao chegava ao dono, nunca |
 | Staff liberou a protecao de um veiculo seu | Nao chegava ao dono, nunca |
+| Aluguel de slot renovado, vencido ou sem saldo para renovar | Recurso novo |
+| Um veiculo seu esta em risco pela carencia, ou perdeu a protecao | Recurso novo |
 
 Detalhes do comportamento:
 
@@ -192,6 +255,12 @@ chave propria `EnableCoordSyncLogs` e nunca vai para o console.
 | `NoticeRetentionDays` | int 1..365 | 30 | Quanto tempo um aviso fica guardado. |
 | `NoticeMaxPerPlayer` | int 5..200 | 50 | Teto de avisos por jogador; o mais antigo sai primeiro. |
 | `NoticeGroupMinutes` | int 1..120 | 10 | Janela em que repeticao do mesmo evento vira uma entrada com contagem. |
+| `EnableSlotRental` | bool | false | Liga o aluguel de slots. Precisa do mod Server Shop. |
+| `SlotRentDays` | int 1..30 | 7 | Duracao do aluguel, em dias reais. |
+| `SlotRentPrice1` | int 0..1000000 | 200 | Pontos por um aluguel de 1 slot, e por renovacao dele. |
+| `SlotRentPrice2` | int 0..1000000 | 300 | Pontos por um aluguel de 2 slots, e por renovacao dele. |
+| `MaxRentedSlots` | int 1..20 | 4 | Teto de slots alugados por jogador. |
+| `SlotGraceHours` | int 0..168 | 24 | Carencia apos o vencimento antes de soltar o claim. 0 = solta na hora. |
 
 ### Pagina "Protect Vehicle - Documents"
 
@@ -227,10 +296,11 @@ Contents/mods/ProtectVehicle/42.20/media/
     PV_UnclaimAction.lua       timed action de desproteger
     PV_ISInventoryTransferAction.lua  container de veiculo
     PV_DocumentSystem.lua      documento/titulo no cliente
-    UI/                        painel do dono, admin, permissoes, avisos
+    UI/                        painel do dono, admin, permissoes, avisos, slots
   lua/server/
     PV_Server.lua              claim, unclaim, timeout, sweep, alertas
     PV_Notices.lua             caixa de avisos do dono
+    PV_ClaimSlots.lua          aluguel de slots, vencimento e carencia
     PV_DocumentSystem.lua      documento/titulo no servidor
     PV_VehicleLogs.lua         escrita dos logs
     PV_AdminTools.lua          comandos de admin
@@ -239,7 +309,11 @@ Contents/mods/ProtectVehicle/42.20/media/
 
 O DB vive em dois ModData globais: `PVByVehicleSQLID` (dados de cada veiculo) e
 `PVByPlayerID` (veiculos e horarios de logon/logoff de cada jogador). A caixa
-de avisos tem a chave propria `PVNotices`, que o cliente nunca pede.
+de avisos tem a chave propria `PVNotices`, e o aluguel de slots a sua,
+`PVClaimSlots`; o cliente nunca pede nenhuma das duas. As duas tem chave
+separada de proposito: `PV.getClaimCount` conta toda chave de
+`PVByPlayerID[jogador]` que nao seja um dos dois campos de horario, entao
+guardar aviso ou aluguel ali faria cada um contar como um veiculo protegido.
 
 ## Autoria
 

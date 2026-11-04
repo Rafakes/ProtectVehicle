@@ -30,6 +30,25 @@ end
 PV.notices = PV.notices or {}
 PV.noticesUnread = PV.noticesUnread or 0
 
+-- Slots de protecao do jogador local. Preenchido pelo comando "pvSlots".
+PV.mySlots = PV.mySlots or nil
+
+-- O limite em PV.getClaimLimit (shared) vale para qualquer jogador, mas o
+-- cliente so conhece os slots DELE: para qualquer outro, zero.
+--
+-- Num servidor-host o cliente e o servidor rodam no mesmo estado Lua e os dois
+-- arquivos definem este resolvedor. O do servidor le o ModData e vale para
+-- todo mundo, entao ele tem de ganhar: aqui so preenchemos se ninguem
+-- preencheu antes.
+if type(PV.resolveBonusSlots) ~= "function" then
+    PV.resolveBonusSlots = function(playerObj)
+        if not PV.mySlots or not playerObj then return 0 end
+        local me = getPlayer()
+        if not me or playerObj ~= me then return 0 end
+        return (tonumber(PV.mySlots.rented) or 0) + (tonumber(PV.mySlots.grace) or 0)
+    end
+end
+
 PV.OnServerCommand = function(module, command, args)
     if module ~= "ProtectVehicle" then return end
 
@@ -114,6 +133,16 @@ PV.OnServerCommand = function(module, command, args)
     elseif command == "updateFlags" then
         local e = PV.getVehicleDBEntry(PV.canonicalVehicleSqlid(args.sqlid))
         if e then e.PublicFlags = args.flags end
+
+    elseif command == "pvSlots" then
+        PV.mySlots = args
+        if PV.UI.SlotsInstance and PV.UI.SlotsInstance:isVisible() then
+            PV.UI.SlotsInstance:refreshAll()
+        end
+        if PV.UI.UserInstance and PV.UI.UserInstance:isVisible() then
+            PV.UI.UserInstance:updateClaimStatus()
+            PV.UI.UserInstance:updateSlotsButton()
+        end
 
     elseif command == "pvNotices" then
         -- A caixa de avisos do proprio jogador. Chega sempre direcionada: o

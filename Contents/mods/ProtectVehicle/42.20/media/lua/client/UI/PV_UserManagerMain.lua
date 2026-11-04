@@ -528,6 +528,7 @@ function PV.UI.UserManagerMain:refreshList()
 
     self:updateClaimStatus()
     self:updateNoticesButton()
+    self:updateSlotsButton()
     self:onSelectionChange()
 end
 
@@ -550,6 +551,28 @@ function PV.UI.UserManagerMain:updateNoticesButton()
     else
         self.btnNotices:setTitle(getText("UI_PV_Notice_Button"))
         PV.UI.ApplyButtonStyle(self.btnNotices)
+    end
+end
+
+-- ============================================================
+-- Slots de protecao
+--
+-- Quando a carencia esta correndo o jogador tem horas para agir antes de
+-- perder um veiculo, entao o botao muda de cor e avisa no proprio rotulo.
+-- ============================================================
+function PV.UI.UserManagerMain:onSlotsClick()
+    if PV.UI.OpenSlots then PV.UI.OpenSlots() end
+end
+
+function PV.UI.UserManagerMain:updateSlotsButton()
+    if not self.btnSlots then return end
+    local s = PV.mySlots
+    if type(s) == "table" and (tonumber(s.grace) or 0) > 0 then
+        self.btnSlots:setTitle(getText("UI_PV_Slots_ButtonRisk"))
+        PV.UI.ApplyButtonStyle(self.btnSlots, "danger")
+    else
+        self.btnSlots:setTitle(getText("UI_PV_Slots_Button"))
+        PV.UI.ApplyButtonStyle(self.btnSlots)
     end
 end
 
@@ -846,9 +869,14 @@ function PV.UI.UserManagerMain:buildLayout()
         self.lblClaimHint = nil
     end
 
-    -- Caixa de avisos: ancorada na base do card, para nao depender de quantas
-    -- linhas de status existem acima.
-    self.btnNotices = ISButton:new(vx, vy + vh - noticeBtnH, vw, noticeBtnH,
+    -- Avisos e Slots, lado a lado na base do card. Ficam aqui, e nao na barra
+    -- de acoes de baixo, porque sao do JOGADOR e nao do veiculo selecionado:
+    -- la em baixo ficariam desabilitados sem selecao.
+    local footBtnY = vy + vh - noticeBtnH
+    local footGap = math.floor(4 * m.scale)
+    local footBtnW = math.floor((vw - footGap) / 2)
+
+    self.btnNotices = ISButton:new(vx, footBtnY, footBtnW, noticeBtnH,
         getText("UI_PV_Notice_Button"), self, self.onNoticesClick)
     self.btnNotices.internal = "btnNotices"
     self.btnNotices:initialise(); self.btnNotices:instantiate()
@@ -856,8 +884,18 @@ function PV.UI.UserManagerMain:buildLayout()
     PV.UI.ApplyButtonStyle(self.btnNotices)
     self.cardVehicles:addChild(self.btnNotices)
 
+    self.btnSlots = ISButton:new(vx + footBtnW + footGap, footBtnY,
+        vw - footBtnW - footGap, noticeBtnH,
+        getText("UI_PV_Slots_Button"), self, self.onSlotsClick)
+    self.btnSlots.internal = "btnSlots"
+    self.btnSlots:initialise(); self.btnSlots:instantiate()
+    self.btnSlots.font = UIFont.NewSmall
+    PV.UI.ApplyButtonStyle(self.btnSlots)
+    self.cardVehicles:addChild(self.btnSlots)
+
     self:updateClaimStatus()
     self:updateNoticesButton()
+    self:updateSlotsButton()
 
     -- ========================================================
     -- TOP RIGHT: Preview

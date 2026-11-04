@@ -400,11 +400,27 @@ end
 -- ============================================================
 -- Max claim check
 -- ============================================================
-function PV.getClaimLimit(playerObj)
+--- Limite da role, sem contar slot alugado.
+function PV.getBaseClaimLimit(playerObj)
     if PV.isSupporterPlayer(playerObj) then
         return (SandboxVars.ProtectVehicle and SandboxVars.ProtectVehicle.MaxVehicleSupporter) or 6
     end
     return (SandboxVars.ProtectVehicle and SandboxVars.ProtectVehicle.MaxVehicle) or 3
+end
+
+--- Slots extras (aluguel + carencia). Quem resolve de verdade e cada lado:
+--- o servidor le o ModData PVClaimSlots, o cliente le o que recebeu sobre si
+--- mesmo. Sem resolvedor, zero - entao o mod funciona igual a antes se o
+--- aluguel estiver desligado ou a loja nao estiver instalada.
+function PV.getBonusSlots(playerObj)
+    if type(PV.resolveBonusSlots) ~= "function" then return 0 end
+    local ok, n = pcall(PV.resolveBonusSlots, playerObj)
+    if ok and type(n) == "number" and n > 0 then return math.floor(n) end
+    return 0
+end
+
+function PV.getClaimLimit(playerObj)
+    return PV.getBaseClaimLimit(playerObj) + PV.getBonusSlots(playerObj)
 end
 
 function PV.getClaimCount(playerObj)

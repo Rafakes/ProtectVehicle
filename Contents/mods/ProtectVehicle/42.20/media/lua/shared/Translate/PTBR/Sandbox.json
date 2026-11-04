@@ -72,5 +72,17 @@
     "Sandbox_PV_NoticesEnabled_tooltip": "Guarda o que aconteceu com os veiculos do jogador e entrega quando ele entra. Sem isto, cada alerta e um texto que aparece na tela e morre: so existe se o dono estiver conectado naquele segundo exato, por isso nada do que acontece enquanto ele esta fora chega a ele. Dois eventos chegam ao dono apenas por esta caixa: o claim expirar por inatividade e a staff libertar o veiculo dele.",
     "Sandbox_PV_NoticeRetentionDays_tooltip": "Quanto tempo um aviso fica guardado no servidor antes de ser descartado.",
     "Sandbox_PV_NoticeMaxPerPlayer_tooltip": "Teto por jogador; o mais antigo sai primeiro. Esta lista vive no ModData global, que e carregado e gravado inteiro, por isso uma lista sem limite custaria tamanho de save e rede.",
-    "Sandbox_PV_NoticeGroupMinutes_tooltip": "Repeticoes do mesmo evento, pelo mesmo jogador e no mesmo veiculo, dentro desta janela viram uma entrada com contagem, em vez de dezenas de linhas iguais. A contagem e o que separa alguem que passou de alguem que ficou uma hora a trabalhar no veiculo."
+    "Sandbox_PV_NoticeGroupMinutes_tooltip": "Repeticoes do mesmo evento, pelo mesmo jogador e no mesmo veiculo, dentro desta janela viram uma entrada com contagem, em vez de dezenas de linhas iguais. A contagem e o que separa alguem que passou de alguem que ficou uma hora a trabalhar no veiculo.",
+    "Sandbox_PV_EnableSlotRental": "Permitir Alugar Slots de Protecao",
+    "Sandbox_PV_SlotRentDays": "Duracao do Aluguel (dias)",
+    "Sandbox_PV_SlotRentPrice1": "Preco: 1 Slot",
+    "Sandbox_PV_SlotRentPrice2": "Preco: 2 Slots",
+    "Sandbox_PV_MaxRentedSlots": "Maximo de Slots Alugados Por Jogador",
+    "Sandbox_PV_SlotGraceHours": "Carencia Apos o Vencimento (horas)",
+    "Sandbox_PV_EnableSlotRental_tooltip": "Deixa o jogador alugar slots extras de protecao pagando com os pontos do Server Shop. Os slots alugados somam em cima do limite da role, nao substituem. Precisa do mod Server Shop no servidor: sem ele o recurso fica desligado e a janela de slots so mostra os limites.",
+    "Sandbox_PV_SlotRentDays_tooltip": "Quanto tempo dura um aluguel, em dias reais. Renovar antes do vencimento soma ao tempo que faltava, em vez de jogar fora.",
+    "Sandbox_PV_SlotRentPrice1_tooltip": "Pontos cobrados pelo aluguel de 1 slot, e por cada renovacao dele.",
+    "Sandbox_PV_SlotRentPrice2_tooltip": "Pontos cobrados pelo aluguel de 2 slots, e por cada renovacao dele. Normalmente mais barato por slot do que dois alugueis de um, para o pacote valer a pena.",
+    "Sandbox_PV_MaxRentedSlots_tooltip": "Teto de quantos slots um jogador pode ter alugados ao mesmo tempo, somando todos os alugueis dele.",
+    "Sandbox_PV_SlotGraceHours_tooltip": "Quando um aluguel vence e o jogador fica acima do limite, nada e solto na hora: ele continua com tudo por este tempo e recebe aviso dizendo o que vai perder e quando. So se ele nao renovar nem desproteger nada por conta propria e que o veiculo protegido mais recente perde a protecao. O vencimento quase sempre acontece com o jogador offline, entao com 0 aqui ele perde um veiculo sem nenhuma chance de reagir."
 }

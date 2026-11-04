@@ -162,6 +162,42 @@ option ProtectVehicle.NoticeGroupMinutes
 		page = ProtectVehicle, translation = PV_NoticeGroupMinutes,
 }
 
+option ProtectVehicle.EnableSlotRental
+{
+		type = boolean, default = false,
+		page = ProtectVehicle, translation = PV_EnableSlotRental,
+}
+
+option ProtectVehicle.SlotRentDays
+{
+		type = integer, min = 1, max = 30, default = 7,
+		page = ProtectVehicle, translation = PV_SlotRentDays,
+}
+
+option ProtectVehicle.SlotRentPrice1
+{
+		type = integer, min = 0, max = 1000000, default = 200,
+		page = ProtectVehicle, translation = PV_SlotRentPrice1,
+}
+
+option ProtectVehicle.SlotRentPrice2
+{
+		type = integer, min = 0, max = 1000000, default = 300,
+		page = ProtectVehicle, translation = PV_SlotRentPrice2,
+}
+
+option ProtectVehicle.MaxRentedSlots
+{
+		type = integer, min = 1, max = 20, default = 4,
+		page = ProtectVehicle, translation = PV_MaxRentedSlots,
+}
+
+option ProtectVehicle.SlotGraceHours
+{
+		type = integer, min = 0, max = 168, default = 24,
+		page = ProtectVehicle, translation = PV_SlotGraceHours,
+}
+
 option ProtectVehicle.RequireConversionDocument
 {
 		type = boolean, default = false,
