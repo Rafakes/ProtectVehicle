@@ -133,5 +133,13 @@
     "IGUI_PV_ConvertToDoc_NeedKey": "Nao foi possivel converter: o veiculo precisa ter chave.",
     "IGUI_PV_ConvertToDoc_NeedKeyOrHotwire": "Nao foi possivel converter: o veiculo precisa ter chave ou estar hotwired.",
     "IGUI_PV_DocTag": "[Título]",
-    "IGUI_PV_User_DocCount": "Títulos: %1"
+    "IGUI_PV_User_DocCount": "Títulos: %1",
+    "IGUI_PV_Notice_Denied": "%2 tentou usar o seu %1",
+    "IGUI_PV_Notice_Intruder": "%2 estava no seu %1 sem permissão",
+    "IGUI_PV_Notice_Wreck": "O seu %1 foi destruído e a proteção foi liberada",
+    "IGUI_PV_Notice_Expired": "O seu %1 deixou de ser seu por tempo sem entrar",
+    "IGUI_PV_Notice_AdminUnclaim": "%2 (staff) liberou a proteção do seu %1",
+    "IGUI_PV_Notice_TransferIn": "%2 transferiu um %1 para você",
+    "IGUI_PV_Notice_TransferOut": "Você transferiu o seu %1 para %2",
+    "IGUI_PV_Notice_LoginSummary": "Você tem %1 aviso(s) novo(s) sobre os seus veículos"
 }

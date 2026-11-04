@@ -134,5 +134,13 @@
     "IGUI_PV_Doc_Status_Transferred": "Sold – awaiting pickup",
     "IGUI_PV_Doc_Status_Redeemed": "Redeemed",
     "IGUI_PV_DocTag": "[Title]",
-    "IGUI_PV_User_DocCount": "Titles: %1"
+    "IGUI_PV_User_DocCount": "Titles: %1",
+    "IGUI_PV_Notice_Denied": "%2 tried to use your %1",
+    "IGUI_PV_Notice_Intruder": "%2 was in your %1 without permission",
+    "IGUI_PV_Notice_Wreck": "Your %1 was destroyed and its protection was released",
+    "IGUI_PV_Notice_Expired": "Your %1 stopped being yours after too long without logging in",
+    "IGUI_PV_Notice_AdminUnclaim": "%2 (staff) released the protection on your %1",
+    "IGUI_PV_Notice_TransferIn": "%2 transferred a %1 to you",
+    "IGUI_PV_Notice_TransferOut": "You transferred your %1 to %2",
+    "IGUI_PV_Notice_LoginSummary": "You have %1 new notice(s) about your vehicles"
 }

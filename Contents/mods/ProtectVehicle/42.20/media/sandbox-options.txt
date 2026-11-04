@@ -138,6 +138,30 @@ option ProtectVehicle.AutoUnclaimConditionPercent
 		page = ProtectVehicle, translation = PV_AutoUnclaimConditionPercent,
 }
 
+option ProtectVehicle.NoticesEnabled
+{
+		type = boolean, default = true,
+		page = ProtectVehicle, translation = PV_NoticesEnabled,
+}
+
+option ProtectVehicle.NoticeRetentionDays
+{
+		type = integer, min = 1, max = 365, default = 30,
+		page = ProtectVehicle, translation = PV_NoticeRetentionDays,
+}
+
+option ProtectVehicle.NoticeMaxPerPlayer
+{
+		type = integer, min = 5, max = 200, default = 50,
+		page = ProtectVehicle, translation = PV_NoticeMaxPerPlayer,
+}
+
+option ProtectVehicle.NoticeGroupMinutes
+{
+		type = integer, min = 1, max = 120, default = 10,
+		page = ProtectVehicle, translation = PV_NoticeGroupMinutes,
+}
+
 option ProtectVehicle.RequireConversionDocument
 {
 		type = boolean, default = false,

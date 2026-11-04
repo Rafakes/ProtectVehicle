@@ -527,7 +527,30 @@ function PV.UI.UserManagerMain:refreshList()
     end
 
     self:updateClaimStatus()
+    self:updateNoticesButton()
     self:onSelectionChange()
+end
+
+-- ============================================================
+-- Caixa de avisos
+--
+-- O rotulo carrega a contagem de nao lidos: e o sinal de "tem coisa nova
+-- aqui" sem precisar de icone nem janela extra aberta.
+-- ============================================================
+function PV.UI.UserManagerMain:onNoticesClick()
+    if PV.UI.OpenNotices then PV.UI.OpenNotices() end
+end
+
+function PV.UI.UserManagerMain:updateNoticesButton()
+    if not self.btnNotices then return end
+    local unread = tonumber(PV.noticesUnread) or 0
+    if unread > 0 then
+        self.btnNotices:setTitle(getText("UI_PV_Notice_ButtonCount", tostring(unread)))
+        PV.UI.ApplyButtonStyle(self.btnNotices, "primary")
+    else
+        self.btnNotices:setTitle(getText("UI_PV_Notice_Button"))
+        PV.UI.ApplyButtonStyle(self.btnNotices)
+    end
 end
 
 -- ============================================================
@@ -785,7 +808,10 @@ function PV.UI.UserManagerMain:buildLayout()
     local showUpgradeHint = claimPlayer ~= nil
         and not PV.isStaffPlayer(claimPlayer)
         and not PV.isSupporterPlayer(claimPlayer)
-    local footerH = (rowH * 2) + statusGap + (showUpgradeHint and (rowH + statusGap) or 0)
+    local noticeBtnH = math.floor(24 * m.scale)
+    if noticeBtnH < 20 then noticeBtnH = 20 end
+    local hintH = showUpgradeHint and (rowH + statusGap) or 0
+    local footerH = (rowH * 2) + statusGap + hintH + noticeBtnH + statusGap
 
     local listH = vh - footerH - statusGap
     if listH < rowH then listH = rowH; footerH = vh - listH - statusGap end
@@ -820,7 +846,18 @@ function PV.UI.UserManagerMain:buildLayout()
         self.lblClaimHint = nil
     end
 
+    -- Caixa de avisos: ancorada na base do card, para nao depender de quantas
+    -- linhas de status existem acima.
+    self.btnNotices = ISButton:new(vx, vy + vh - noticeBtnH, vw, noticeBtnH,
+        getText("UI_PV_Notice_Button"), self, self.onNoticesClick)
+    self.btnNotices.internal = "btnNotices"
+    self.btnNotices:initialise(); self.btnNotices:instantiate()
+    self.btnNotices.font = UIFont.NewSmall
+    PV.UI.ApplyButtonStyle(self.btnNotices)
+    self.cardVehicles:addChild(self.btnNotices)
+
     self:updateClaimStatus()
+    self:updateNoticesButton()
 
     -- ========================================================
     -- TOP RIGHT: Preview

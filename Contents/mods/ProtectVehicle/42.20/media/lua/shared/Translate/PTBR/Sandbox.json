@@ -64,5 +64,13 @@
     "Sandbox_PV_MinVehicleConditionForConversion_tooltip": "Bloqueia a conversao quando a condicao geral do veiculo estiver abaixo deste valor. 0 desabilita.",
     "Sandbox_PV_ConsumeDocumentOnSpawn_tooltip": "Se ativado, o Titulo de Veiculo e removido do inventario apos resgatar o veiculo.",
     "Sandbox_PV_SpawnMaxDistance_tooltip": "Distancia maxima em tiles do jogador para resgatar um veiculo a partir de documento.",
-    "Sandbox_PV_AllowShopTransfer_tooltip": "Permite anunciar e vender Titulos de Veiculo no Survivor Shop."
+    "Sandbox_PV_AllowShopTransfer_tooltip": "Permite anunciar e vender Titulos de Veiculo no Survivor Shop.",
+    "Sandbox_PV_NoticesEnabled": "Caixa de Avisos do Dono",
+    "Sandbox_PV_NoticeRetentionDays": "Guardar Avisos Por (dias)",
+    "Sandbox_PV_NoticeMaxPerPlayer": "Maximo de Avisos Por Jogador",
+    "Sandbox_PV_NoticeGroupMinutes": "Agrupar Repeticao Em (minutos)",
+    "Sandbox_PV_NoticesEnabled_tooltip": "Guarda o que aconteceu com os veiculos do jogador e entrega quando ele entra. Sem isto, cada alerta e um texto que aparece na tela e morre: so existe se o dono estiver conectado naquele segundo exato, por isso nada do que acontece enquanto ele esta fora chega a ele. Dois eventos chegam ao dono apenas por esta caixa: o claim expirar por inatividade e a staff libertar o veiculo dele.",
+    "Sandbox_PV_NoticeRetentionDays_tooltip": "Quanto tempo um aviso fica guardado no servidor antes de ser descartado.",
+    "Sandbox_PV_NoticeMaxPerPlayer_tooltip": "Teto por jogador; o mais antigo sai primeiro. Esta lista vive no ModData global, que e carregado e gravado inteiro, por isso uma lista sem limite custaria tamanho de save e rede.",
+    "Sandbox_PV_NoticeGroupMinutes_tooltip": "Repeticoes do mesmo evento, pelo mesmo jogador e no mesmo veiculo, dentro desta janela viram uma entrada com contagem, em vez de dezenas de linhas iguais. A contagem e o que separa alguem que passou de alguem que ficou uma hora a trabalhar no veiculo."
 }

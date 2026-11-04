@@ -54,6 +54,14 @@ function PV.InitDB()
     PV.dbByVehicleSQLID = ModData.get("PVByVehicleSQLID")
     PV.dbByPlayerID     = ModData.get("PVByPlayerID")
 
+    -- Caixa de avisos do dono (chave propria, entregue so ao dono).
+    if PV.Notices and PV.Notices.ensureStore then
+        local okN, errN = pcall(PV.Notices.ensureStore)
+        if not okN then
+            print("[PV] PVNotices: falha ao inicializar: " .. tostring(errN))
+        end
+    end
+
     -- Garante que são tabelas (ModData pode retornar nil em server dedicado limpo)
     if type(PV.dbByVehicleSQLID) ~= "table" then
         PV.dbByVehicleSQLID = {}
@@ -347,6 +355,8 @@ function PV.ServerUnclaimVehicle(playerObj, sqlid, isTimeout, reason)
 
     local owner = entry.OwnerPlayerID
 
+    local unclaimVehicleName = tostring(PV.getVehicleDisplayNameFromModel(entry.CarModel) or "?")
+
     -- Log it
     if isTimeout then
         if reason then
@@ -354,10 +364,26 @@ function PV.ServerUnclaimVehicle(playerObj, sqlid, isTimeout, reason)
             PV.Log.autoUnclaim(sqlid, owner, reason)
         else
             PV.Log.timeout(sqlid, owner, (PV.dbByPlayerID[owner] and PV.dbByPlayerID[owner].LastKnownLogoffTime or 0))
+
+            -- Expirou por inatividade. So acontece com o dono offline, e ele
+            -- voltava sem nada explicando por que o carro nao e mais dele.
+            if PV.Notices and PV.Notices.record then
+                pcall(PV.Notices.record, owner, "IGUI_PV_Notice_Expired",
+                    { p1 = unclaimVehicleName })
+            end
         end
     else
         local isAdmin = playerObj:getUsername() ~= owner
         PV.Log.unclaim(playerObj, sqlid, isAdmin)
+
+        -- Staff liberou o carro de outra pessoa: hoje isso so existia no log
+        -- do servidor, invisivel para o dono.
+        if isAdmin and PV.Notices and PV.Notices.record then
+            pcall(PV.Notices.record, owner, "IGUI_PV_Notice_AdminUnclaim", {
+                p1 = unclaimVehicleName,
+                p2 = tostring(playerObj:getUsername()),
+            })
+        end
     end
 
     PV.clearPlayerVehicleIndex(owner, sqlid)
@@ -421,7 +447,8 @@ local function _isUsernameOnline(username)
     return false
 end
 
-local function PV_getOnlinePlayerByUsername(username)
+-- Exposto em PV.* porque PV_Notices tambem precisa resolver o dono online.
+function PV.getOnlinePlayerByUsername(username)
     if type(username) ~= "string" or username == "" then return nil end
 
     if getPlayerFromUsername then
@@ -446,6 +473,8 @@ local function PV_getOnlinePlayerByUsername(username)
     end
     return nil
 end
+
+local PV_getOnlinePlayerByUsername = PV.getOnlinePlayerByUsername
 
 -- ============================================================
 -- ALERTA DE TENTATIVA NEGADA
@@ -479,6 +508,18 @@ local function PV_alertOwnerOfDeniedAttempt(player, vehicleObj, action)
     local ok, allowed = pcall(PV.canPerformAction, player, vehicleObj, action)
     if not ok or allowed == true then return end
 
+    local vehicleName = tostring(PV.getVehicleDisplayNameFromModel(entry.CarModel) or "?")
+
+    -- A caixa de avisos registra TODA tentativa, agrupando repeticao em uma
+    -- entrada com contagem. O cooldown abaixo vale so para o log e o halo.
+    if PV.Notices and PV.Notices.record then
+        pcall(PV.Notices.record, owner, "IGUI_PV_Notice_Denied", {
+            p1 = vehicleName,
+            p2 = username,
+            gk = "denied|" .. tostring(sqlid) .. "|" .. username,
+        })
+    end
+
     local cooldownMinutes = tonumber(sv and sv.TheftAlertCooldownMinutes) or 10
     if cooldownMinutes < 1 then cooldownMinutes = 1 end
 
@@ -494,7 +535,7 @@ local function PV_alertOwnerOfDeniedAttempt(player, vehicleObj, action)
     if ownerObj then
         sendServerCommand(ownerObj, "ProtectVehicle", "pvAlert", {
             text = "IGUI_PV_Alert_DeniedAttempt",
-            p1 = tostring(PV.getVehicleDisplayNameFromModel(entry.CarModel) or "?"),
+            p1 = vehicleName,
             p2 = tostring(username),
         })
     end
@@ -768,6 +809,13 @@ PV.OnClientCommand = function(module, command, player, args)
             r = 120, g = 230, b = 120,
         })
 
+        if PV.Notices and PV.Notices.record then
+            pcall(PV.Notices.record, target, "IGUI_PV_Notice_TransferIn",
+                { p1 = tostring(vehicleName or "?"), p2 = tostring(oldOwner) })
+            pcall(PV.Notices.record, oldOwner, "IGUI_PV_Notice_TransferOut",
+                { p1 = tostring(vehicleName or "?"), p2 = tostring(target) })
+        end
+
     elseif command == "updateFlags" then
         local sqlid = PV.toSQLID(args.sqlid)
         local delta = args.delta
@@ -889,6 +937,41 @@ PV.OnClientCommand = function(module, command, player, args)
             PV.Log.writeGlobal("New player registered in DB: '" .. username .. "'", "INFO")
         end
         ModData.add("PVByPlayerID", PV.dbByPlayerID)
+
+        -- Entrega a caixa de avisos: e aqui que o jogador descobre o que
+        -- aconteceu com os carros dele enquanto estava fora.
+        if PV.Notices and PV.Notices.sendTo then
+            local okN = pcall(PV.Notices.sendTo, player)
+            if okN then
+                local unread = PV.Notices.unreadCount(username)
+                if unread > 0 then
+                    -- pvAlert, nao haloNote: o handler de haloNote no cliente
+                    -- ignora parametro e cor.
+                    sendServerCommand(player, "ProtectVehicle", "pvAlert", {
+                        text = "IGUI_PV_Notice_LoginSummary",
+                        p1 = tostring(unread),
+                        r = 255, g = 205, b = 90,
+                    })
+                end
+            end
+        end
+
+    elseif command == "noticesRequest" then
+        if PV.Notices and PV.Notices.sendTo then
+            pcall(PV.Notices.sendTo, player)
+        end
+
+    elseif command == "noticesMarkRead" then
+        if PV.Notices and PV.Notices.markAllRead then
+            pcall(PV.Notices.markAllRead, player:getUsername())
+            pcall(PV.Notices.sendTo, player)
+        end
+
+    elseif command == "noticesClear" then
+        if PV.Notices and PV.Notices.clear then
+            pcall(PV.Notices.clear, player:getUsername())
+            pcall(PV.Notices.sendTo, player)
+        end
 
     elseif command == "reportDenied" then
         local vehicleId = tonumber(args.vehicleId)
@@ -1042,6 +1125,11 @@ local function PV_AutoUnclaimIfWreck(vehicleObj, sqlid)
 
     PV.ServerUnclaimVehicle(nil, sqlid, true, "destroyed:" .. reason)
 
+    if PV.Notices and PV.Notices.record then
+        pcall(PV.Notices.record, owner, "IGUI_PV_Notice_Wreck",
+            { p1 = tostring(vehicleName or "?") })
+    end
+
     local ownerObj = PV_getOnlinePlayerByUsername(owner)
     if ownerObj then
         sendServerCommand(ownerObj, "ProtectVehicle", "pvAlert", {
@@ -1131,6 +1219,16 @@ local function PV_CheckVehicleIntruders(vehicleObj, sqlid, entry)
             if ok and allowed ~= true then
                 local key = tostring(sqlid) .. "|" .. occ.username
                 local last = _pvIntrusionAlertAt[key] or 0
+                -- Mesma regra da tentativa negada: o aviso sempre entra
+                -- (agrupado), o log e o halo respeitam o cooldown.
+                if PV.Notices and PV.Notices.record then
+                    pcall(PV.Notices.record, ownerID, "IGUI_PV_Notice_Intruder", {
+                        p1 = tostring(vehicleName or "?"),
+                        p2 = tostring(occ.username),
+                        gk = "intruder|" .. tostring(sqlid) .. "|" .. tostring(occ.username),
+                    })
+                end
+
                 if (now - last) >= cooldown then
                     _pvIntrusionAlertAt[key] = now
 

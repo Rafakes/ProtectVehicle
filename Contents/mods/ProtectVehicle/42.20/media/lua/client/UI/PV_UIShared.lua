@@ -233,6 +233,40 @@ end
 
 --- "ha 5 min" para um timestamp em segundos, ou nil.
 --- Coordenada velha engana: o carro pode ter sido movido depois.
+-- ============================================================
+-- Corta texto em uma largura, com reticencias
+--
+-- Lua conta bytes, nao caracteres: cortar no meio de um acento deixaria meio
+-- caractere no fim da string. Por isso, depois de encurtar, descartamos os
+-- bytes de continuacao UTF-8 (10xxxxxx) que sobraram soltos.
+-- ============================================================
+function PV.UI.TruncateText(text, maxW, font)
+    if text == nil then return "" end
+    text = tostring(text)
+    font = font or UIFont.NewSmall
+
+    local tm = getTextManager()
+    if tm:MeasureStringX(font, text) <= maxW then return text end
+
+    local ell = "..."
+    local ellW = tm:MeasureStringX(font, ell)
+    local s = text
+    while #s > 0 and (tm:MeasureStringX(font, s) + ellW) > maxW do
+        s = string.sub(s, 1, #s - 1)
+    end
+    while #s > 0 do
+        local b = string.byte(s, #s)
+        if b >= 0x80 and b <= 0xBF then
+            s = string.sub(s, 1, #s - 1)
+        else
+            -- byte inicial de uma sequencia multibyte sem os bytes seguintes
+            if b >= 0xC0 then s = string.sub(s, 1, #s - 1) end
+            break
+        end
+    end
+    return s .. ell
+end
+
 function PV.UI.FormatLocationAge(timestamp)
     local ts = tonumber(timestamp)
     if not ts or ts <= 0 then return nil end

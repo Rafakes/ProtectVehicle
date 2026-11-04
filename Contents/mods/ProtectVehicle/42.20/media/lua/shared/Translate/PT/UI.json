@@ -62,5 +62,13 @@
     "UI_PV_AllowOpt_Safehouse": "Permitir Abrigo (todos os poderes)",
     "UI_PV_AllowOpt_Faction": "Permitir Fac\u00e7\u00e3o (todos os poderes)",
     "UI_PV_AllowOpt_SafehouseRV": "Permitir Abrigo entrar no RV",
-    "UI_PV_AllowOpt_FactionRV": "Permitir Fac\u00e7\u00e3o entrar no RV"
+    "UI_PV_AllowOpt_FactionRV": "Permitir Fac\u00e7\u00e3o entrar no RV",
+    "UI_PV_Notice_Title": "Avisos dos Meus Ve\u00edculos",
+    "UI_PV_Notice_Button": "Avisos",
+    "UI_PV_Notice_ButtonCount": "Avisos (%1)",
+    "UI_PV_Notice_Count": "(%1x)",
+    "UI_PV_Notice_Empty": "Nenhum aviso.",
+    "UI_PV_Notice_Summary": "%1 avisos, %2 novos",
+    "UI_PV_Notice_Clear": "Limpar",
+    "UI_PV_Notice_ConfirmClear": "Apagar todos os avisos?"
 }

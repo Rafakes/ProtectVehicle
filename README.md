@@ -26,6 +26,49 @@ ficam nas paginas **Protect Vehicle** e **Protect Vehicle - Documents** do Sandb
   fecha a janela. Precisa ser definida uma vez por jogador.
 - **Painel de admin**: botao direito no chao, apenas para admin e moderator.
 - **Permissoes de um veiculo**: botao direito no veiculo, ou pelo painel do dono.
+- **Avisos dos meus veiculos**: botao **Avisos** no pe da lista de veiculos,
+  no painel do dono. O rotulo mostra quantos avisos ainda nao foram lidos.
+
+## Caixa de avisos
+
+Todo aviso do mod era `setHaloNote`: texto que aparece na tela e morre. Se o
+dono nao estivesse conectado no segundo exato do evento, o aviso nao existia em
+lugar nenhum que ele pudesse ler depois - ou seja, ele nunca descobria o que
+tinha acontecido com o carro enquanto estava fora. E dois eventos nao chegavam
+a ele nem estando online, so ficavam no log do servidor.
+
+A caixa de avisos guarda esses eventos por jogador e entrega no logon. O que
+entra nela:
+
+| Aviso | Existia antes? |
+| --- | --- |
+| Alguem tentou dirigir, abrir ou saquear um veiculo seu e foi bloqueado | So como halo, perdido se offline |
+| Alguem estava sentado num veiculo seu sem permissao | So como halo, perdido se offline |
+| Um veiculo seu foi destruido e a protecao foi liberada | So como halo, perdido se offline |
+| Alguem transferiu um veiculo para voce, ou voce transferiu o seu | So como halo, perdido se offline |
+| Um veiculo deixou de ser seu por tempo sem entrar (`ClaimTimeoutHours`) | Nao chegava ao dono, nunca |
+| Staff liberou a protecao de um veiculo seu | Nao chegava ao dono, nunca |
+
+Detalhes do comportamento:
+
+- **Repeticao vira contagem.** Eventos iguais do mesmo jogador no mesmo veiculo
+  dentro de `NoticeGroupMinutes` formam **uma** entrada com contagem, em vez de
+  dezenas de linhas iguais. A contagem e o que separa alguem que passou de
+  alguem que ficou uma hora a trabalhar no carro. Antes, o cooldown do alerta
+  descartava as repeticoes.
+- **Guarda a chave de traducao, nao a frase.** O texto e montado na hora de
+  desenhar, entao o aviso sai no idioma de quem le, nao no de quem estava
+  logado quando o evento aconteceu.
+- **Tempo relativo** ("ha 5 min", "ha 2 d"), igual a linha de localizacao do
+  painel: sem duvida de fuso horario.
+- **Marcados como lidos ao fechar** a janela, nao ao abrir, para o destaque dos
+  novos continuar visivel durante a leitura.
+- **Teto e validade**: `NoticeMaxPerPlayer` e `NoticeRetentionDays`. A lista
+  vive em ModData global, que e carregado e gravado inteiro, por isso uma lista
+  sem limite custaria tamanho de save e rede.
+
+Cada jogador recebe **apenas a propria lista**, por comando direcionado; o
+cliente nunca pede a chave `PVNotices`. Ver a ressalva em "O que o mod protege".
 
 ## Transferir um veiculo
 
@@ -89,6 +132,22 @@ substitua as mesmas timed actions) pode passar por eles. Do lado do servidor:
 - Veiculo protegido destruido tem a protecao liberada automaticamente, para nao
   prender um slot do dono (`AutoUnclaimDestroyed`).
 
+Sobre a caixa de avisos, vale saber o que e confiavel e o que nao e:
+
+- **Tentativa bloqueada** nasce do cliente do infrator (comando
+  `reportDenied`), entao um cliente modificado simplesmente nao reporta e o
+  aviso nao aparece. O servidor reconfere a permissao antes de aceitar, por
+  isso o aviso tambem nao pode ser **forjado** - mas pode ser **omitido**.
+- **Intruso, expiracao, veiculo destruido e acao de staff** sao decididos no
+  servidor e nao tem como ser escondidos.
+
+Ou seja: "nenhum aviso" nao significa "ninguem mexeu".
+
+Os avisos ficam no ModData global `PVNotices`. Um cliente modificado consegue
+pedir qualquer ModData global, inclusive esse - o que ja valia para
+`PVByVehicleSQLID`, que expoe dono e ultima coordenada conhecida de todos os
+veiculos protegidos. O cliente normal recebe somente a propria lista.
+
 ## Logs
 
 Escritos em `Zomboid/Lua/ProtectVehicle/<AAAA-MM-DD>/` no servidor:
@@ -129,6 +188,10 @@ chave propria `EnableCoordSyncLogs` e nunca vai para o console.
 | `TheftAlertCooldownMinutes` | int 1..1440 | 10 | Intervalo minimo entre avisos do mesmo jogador no mesmo veiculo (vale para os dois alertas). |
 | `AutoUnclaimDestroyed` | bool | true | Libera a protecao de veiculo queimado/destruido. |
 | `AutoUnclaimConditionPercent` | int 0..100 | 0 | Libera tambem abaixo dessa condicao geral. 0 = desligado (recomendado). |
+| `NoticesEnabled` | bool | true | Liga a caixa de avisos do dono. |
+| `NoticeRetentionDays` | int 1..365 | 30 | Quanto tempo um aviso fica guardado. |
+| `NoticeMaxPerPlayer` | int 5..200 | 50 | Teto de avisos por jogador; o mais antigo sai primeiro. |
+| `NoticeGroupMinutes` | int 1..120 | 10 | Janela em que repeticao do mesmo evento vira uma entrada com contagem. |
 
 ### Pagina "Protect Vehicle - Documents"
 
@@ -164,9 +227,10 @@ Contents/mods/ProtectVehicle/42.20/media/
     PV_UnclaimAction.lua       timed action de desproteger
     PV_ISInventoryTransferAction.lua  container de veiculo
     PV_DocumentSystem.lua      documento/titulo no cliente
-    UI/                        painel do dono, painel de admin, permissoes
+    UI/                        painel do dono, admin, permissoes, avisos
   lua/server/
     PV_Server.lua              claim, unclaim, timeout, sweep, alertas
+    PV_Notices.lua             caixa de avisos do dono
     PV_DocumentSystem.lua      documento/titulo no servidor
     PV_VehicleLogs.lua         escrita dos logs
     PV_AdminTools.lua          comandos de admin
@@ -174,7 +238,8 @@ Contents/mods/ProtectVehicle/42.20/media/
 ```
 
 O DB vive em dois ModData globais: `PVByVehicleSQLID` (dados de cada veiculo) e
-`PVByPlayerID` (veiculos e horarios de logon/logoff de cada jogador).
+`PVByPlayerID` (veiculos e horarios de logon/logoff de cada jogador). A caixa
+de avisos tem a chave propria `PVNotices`, que o cliente nunca pede.
 
 ## Autoria
 

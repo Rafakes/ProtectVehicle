@@ -26,6 +26,10 @@ end
 -- ============================================================
 -- SERVER -> CLIENT HANDLER
 -- ============================================================
+-- Caixa de avisos do jogador local. Preenchida pelo comando "pvNotices".
+PV.notices = PV.notices or {}
+PV.noticesUnread = PV.noticesUnread or 0
+
 PV.OnServerCommand = function(module, command, args)
     if module ~= "ProtectVehicle" then return end
 
@@ -110,6 +114,19 @@ PV.OnServerCommand = function(module, command, args)
     elseif command == "updateFlags" then
         local e = PV.getVehicleDBEntry(PV.canonicalVehicleSqlid(args.sqlid))
         if e then e.PublicFlags = args.flags end
+
+    elseif command == "pvNotices" then
+        -- A caixa de avisos do proprio jogador. Chega sempre direcionada: o
+        -- cliente nunca pede o ModData PVNotices, que tem a de todo mundo.
+        PV.notices = (type(args.items) == "table") and args.items or {}
+        PV.noticesUnread = tonumber(args.unread) or 0
+
+        if PV.UI.NoticesInstance and PV.UI.NoticesInstance:isVisible() then
+            PV.UI.NoticesInstance:refreshList()
+        end
+        if PV.UI.UserInstance and PV.UI.UserInstance:isVisible() then
+            PV.UI.UserInstance:updateNoticesButton()
+        end
 
     elseif command == "haloNote" then
         getPlayer():setHaloNote(getText(args.text), 255, 255, 255, 300)

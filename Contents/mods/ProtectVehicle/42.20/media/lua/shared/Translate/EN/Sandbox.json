@@ -64,5 +64,13 @@
     "Sandbox_PV_MinVehicleConditionForConversion_tooltip": "Blocks conversion when the vehicle's overall condition is below this value. Set to 0 to disable.",
     "Sandbox_PV_ConsumeDocumentOnSpawn_tooltip": "If enabled, the Vehicle Title is removed from inventory after spawning the vehicle.",
     "Sandbox_PV_SpawnMaxDistance_tooltip": "Maximum distance in tiles from the player where a vehicle can be spawned from a title.",
-    "Sandbox_PV_AllowShopTransfer_tooltip": "Allow Vehicle Titles to be listed and sold via the Survivor Shop marketplace."
+    "Sandbox_PV_AllowShopTransfer_tooltip": "Allow Vehicle Titles to be listed and sold via the Survivor Shop marketplace.",
+    "Sandbox_PV_NoticesEnabled": "Owner Notice Box",
+    "Sandbox_PV_NoticeRetentionDays": "Keep Notices For (days)",
+    "Sandbox_PV_NoticeMaxPerPlayer": "Max Notices Per Player",
+    "Sandbox_PV_NoticeGroupMinutes": "Group Repeats Within (minutes)",
+    "Sandbox_PV_NoticesEnabled_tooltip": "Stores what happened to a player's vehicles and delivers it when they log in. Without this, every alert is a halo note that only exists if the owner is online at that exact second, so nothing that happens while they are away ever reaches them. Two events reach the owner only through this box: a claim expiring from inactivity, and staff releasing their vehicle.",
+    "Sandbox_PV_NoticeRetentionDays_tooltip": "How long a notice is kept on the server before it is dropped.",
+    "Sandbox_PV_NoticeMaxPerPlayer_tooltip": "Hard cap per player, oldest dropped first. This list lives in global ModData, which is loaded and saved whole, so an unbounded list would cost save size and network.",
+    "Sandbox_PV_NoticeGroupMinutes_tooltip": "Repeats of the same event by the same player on the same vehicle inside this window become one entry with a count, instead of dozens of identical lines. The count is what separates someone who walked past from someone who spent an hour working on the vehicle."
 }

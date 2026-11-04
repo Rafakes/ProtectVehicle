@@ -62,5 +62,13 @@
     "UI_PV_AllowOpt_Safehouse": "Allow Safehouse (all powers)",
     "UI_PV_AllowOpt_Faction": "Allow Faction (all powers)",
     "UI_PV_AllowOpt_SafehouseRV": "Allow Safehouse Enter RV",
-    "UI_PV_AllowOpt_FactionRV": "Allow Faction Enter RV"
+    "UI_PV_AllowOpt_FactionRV": "Allow Faction Enter RV",
+    "UI_PV_Notice_Title": "My Vehicle Notices",
+    "UI_PV_Notice_Button": "Notices",
+    "UI_PV_Notice_ButtonCount": "Notices (%1)",
+    "UI_PV_Notice_Count": "(%1x)",
+    "UI_PV_Notice_Empty": "No notices.",
+    "UI_PV_Notice_Summary": "%1 notices, %2 new",
+    "UI_PV_Notice_Clear": "Clear",
+    "UI_PV_Notice_ConfirmClear": "Delete every notice?"
 }
