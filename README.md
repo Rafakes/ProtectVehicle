@@ -18,6 +18,15 @@ Copie a pasta para `%USERPROFILE%\Zomboid\mods` ou assine o item na Steam Worksh
 Em servidor dedicado, o mod tem de estar na lista de mods do servidor; as opcoes
 ficam nas paginas **Protect Vehicle** e **Protect Vehicle - Documents** do Sandbox.
 
+## Como abrir os paineis
+
+- **Meus Veiculos Protegidos**: clique com o botao direito no chao ou pela tecla
+  definida em *Opcoes > Teclas > [Protect Vehicle]*. O atalho vem **sem tecla**
+  de fabrica, para nao conflitar com o jogo nem com outro mod; a mesma tecla
+  fecha a janela. Precisa ser definida uma vez por jogador.
+- **Painel de admin**: botao direito no chao, apenas para admin e moderator.
+- **Permissoes de um veiculo**: botao direito no veiculo, ou pelo painel do dono.
+
 ## Como a permissao e resolvida
 
 A ordem abaixo e a que `PV.checkPermission` e `PV.canPerformAction` seguem

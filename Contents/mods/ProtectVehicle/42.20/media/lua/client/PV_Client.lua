@@ -521,3 +521,53 @@ local function PV_WatchVehicleExit()
 end
 
 Events.OnTick.Add(PV_WatchVehicleExit)
+
+-- ============================================================
+-- ATALHO DE TECLADO: abre "Meus Veiculos Protegidos"
+--
+-- Entra em Opcoes > Teclas SEM tecla definida: assim nao briga com
+-- atalho do jogo nem de outro mod, e cada jogador escolhe a sua. A
+-- opcao no menu de contexto continua existindo.
+--
+-- O texto mostrado na lista de teclas vem de
+-- UI_optionscreen_binding_<value>; sem a chave, o jogo cai no proprio
+-- value, que por isso ja e legivel.
+-- ============================================================
+local PV_KEYBIND_NAME = "Protect Vehicle"
+
+if keyBinding then
+    table.insert(keyBinding, { value = "[Protect Vehicle]" })
+    table.insert(keyBinding, {
+        value = PV_KEYBIND_NAME,
+        key = (Keyboard and Keyboard.KEY_NONE) or 0,
+    })
+end
+
+local function PV_isTypingInChat()
+    local entry = ISChat and ISChat.instance and ISChat.instance.textEntry
+    if not entry or not entry.isFocused then return false end
+    local ok, focused = pcall(function() return entry:isFocused() end)
+    return ok and focused == true
+end
+
+local function PV_OnKeyPressed(key)
+    local core = getCore and getCore()
+    if not core or not core.getKey then return end
+
+    local ok, bound = pcall(function() return core:getKey(PV_KEYBIND_NAME) end)
+    if not ok or not bound or bound == 0 or key ~= bound then return end
+
+    local player = getPlayer()
+    if not player or player:isDead() then return end
+    if PV_isTypingInChat() then return end
+
+    -- Toggle: a mesma tecla fecha a janela ja aberta.
+    if PV.UI.UserInstance and PV.UI.UserInstance:isVisible() then
+        PV.UI.UserInstance:close()
+        return
+    end
+
+    if PV.UI.OpenUserManager then PV.UI.OpenUserManager() end
+end
+
+Events.OnKeyPressed.Add(PV_OnKeyPressed)
