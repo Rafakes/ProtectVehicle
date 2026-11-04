@@ -321,7 +321,7 @@ local function _giveDocumentToPlayer(playerObj)
     return added
 end
 
-function PV.ServerUnclaimVehicle(playerObj, sqlid, isTimeout)
+function PV.ServerUnclaimVehicle(playerObj, sqlid, isTimeout, reason)
     sqlid = PV.toSQLID(sqlid)
 
     -- Defensive: DB nÃƒÂ£o inicializado
@@ -349,7 +349,12 @@ function PV.ServerUnclaimVehicle(playerObj, sqlid, isTimeout)
 
     -- Log it
     if isTimeout then
-        PV.Log.timeout(sqlid, owner, (PV.dbByPlayerID[owner] and PV.dbByPlayerID[owner].LastKnownLogoffTime or 0))
+        if reason then
+            -- Unclaim automatico que nao e timeout (ex.: veiculo destruido).
+            PV.Log.autoUnclaim(sqlid, owner, reason)
+        else
+            PV.Log.timeout(sqlid, owner, (PV.dbByPlayerID[owner] and PV.dbByPlayerID[owner].LastKnownLogoffTime or 0))
+        end
     else
         local isAdmin = playerObj:getUsername() ~= owner
         PV.Log.unclaim(playerObj, sqlid, isAdmin)
@@ -788,6 +793,110 @@ local function PV_PollPlayerDisconnect()
 end
 
 -- ============================================================
+-- AUTO-UNCLAIM DE VEICULO DESTRUIDO
+--
+-- Sem isto um carro queimado/destruido fica no DB para sempre e segue
+-- ocupando um dos MaxVehicle do dono, que nao tem como desproteger um
+-- veiculo que nao existe mais.
+--
+-- Sinais de "destruido", em ordem de confianca:
+--   1. vehicleObj:isBurnt() quando a build expoe o metodo;
+--   2. nome do script contendo "burnt" (variante queimada do veiculo);
+--   3. condicao geral <= AutoUnclaimConditionPercent, apenas se o admin
+--      ligar a opcao (default 0 = desligado).
+--
+-- O caminho 3 e opt-in de proposito: getPartCount inclui pecas ausentes,
+-- entao um carro em obras (todas as pecas removidas pelo dono) poderia
+-- ser lido como sucata.
+-- ============================================================
+
+--- Media da condicao das pecas, 0..100. Devolve 100 quando nao da para medir.
+local function PV_getVehicleConditionPercent(vehicleObj)
+    if not vehicleObj then return 100 end
+
+    local total, count = 0, 0
+    pcall(function()
+        local partCount = vehicleObj:getPartCount()
+        for i = 0, partCount - 1 do
+            local part = vehicleObj:getPartByIndex(i)
+            if part and part.getCondition then
+                local c = tonumber(part:getCondition())
+                if c ~= nil then
+                    if c < 0 then c = 0 end
+                    if c > 100 then c = 100 end
+                    total = total + c
+                    count = count + 1
+                end
+            end
+        end
+    end)
+
+    if count <= 0 then return 100 end
+    return total / count
+end
+
+--- Motivo da sucata ("burnt", "burnt_script", "condition") ou nil.
+local function PV_getVehicleWreckReason(vehicleObj)
+    if not vehicleObj then return nil end
+
+    -- A: metodo explicito da build, quando existe.
+    if vehicleObj.isBurnt then
+        local ok, burnt = pcall(function() return vehicleObj:isBurnt() end)
+        if ok and burnt == true then return "burnt" end
+    end
+
+    local cond = PV_getVehicleConditionPercent(vehicleObj)
+
+    -- B: variante queimada do script. Exige condicao no chao como
+    -- confirmacao: existem mods com "burnt" no nome de carros que andam.
+    local okScript, fullName = pcall(function()
+        return tostring(vehicleObj:getScript():getFullName())
+    end)
+    if okScript and type(fullName) == "string"
+       and string.find(string.lower(fullName), "burnt", 1, true)
+       and cond <= 1 then
+        return "burnt_script(cond=" .. string.format("%.1f", cond) .. ")"
+    end
+
+    -- C: limiar de condicao, opt-in do admin.
+    local sv = SandboxVars.ProtectVehicle
+    local threshold = tonumber(sv and sv.AutoUnclaimConditionPercent) or 0
+    if threshold > 0 and cond <= threshold then
+        return "condition(cond=" .. string.format("%.1f", cond) .. ")"
+    end
+
+    return nil
+end
+
+--- true quando a entrada foi removida do DB (o chamador para de tratar
+--- este veiculo neste ciclo).
+local function PV_AutoUnclaimIfWreck(vehicleObj, sqlid)
+    local sv = SandboxVars.ProtectVehicle
+    if sv and sv.AutoUnclaimDestroyed == false then return false end
+
+    local entry = PV.getVehicleDBEntry(sqlid)
+    if not entry then return false end
+
+    local reason = PV_getVehicleWreckReason(vehicleObj)
+    if not reason then return false end
+
+    local owner = entry.OwnerPlayerID
+    local vehicleName = PV.getVehicleDisplayNameFromModel(entry.CarModel)
+
+    PV.ServerUnclaimVehicle(nil, sqlid, true, "destroyed:" .. reason)
+
+    local ownerObj = PV_getOnlinePlayerByUsername(owner)
+    if ownerObj then
+        sendServerCommand(ownerObj, "ProtectVehicle", "pvAlert", {
+            text = "IGUI_PV_Alert_VehicleWreck",
+            p1 = tostring(vehicleName or "?"),
+        })
+    end
+
+    return true
+end
+
+-- ============================================================
 -- DETECCAO DE INTRUSO (camada de servidor)
 --
 -- Todos os bloqueios de dirigir/entrar vivem em overrides de cliente,
@@ -875,7 +984,7 @@ local function PV_CheckVehicleIntruders(vehicleObj, sqlid, entry)
 
                     local ownerObj = PV_getOnlinePlayerByUsername(ownerID)
                     if ownerObj then
-                        sendServerCommand(ownerObj, "ProtectVehicle", "theftAlert", {
+                        sendServerCommand(ownerObj, "ProtectVehicle", "pvAlert", {
                             text = "IGUI_PV_Alert_VehicleIntruder",
                             p1 = tostring(vehicleName or "?"),
                             p2 = tostring(occ.username),
@@ -905,6 +1014,15 @@ local function PV_ScanLoadedClaimedVehicles()
                 })
                 if changed then
                     PV.Log.coordSync(nil, vehicleObj, sqlid, "server_sweep")
+                end
+
+                local okWreck, wreckRes = pcall(PV_AutoUnclaimIfWreck, vehicleObj, sqlid)
+                if not okWreck then
+                    PV.Log.writeGlobal("Wreck check failed for sqlid " .. tostring(sqlid)
+                        .. ": " .. tostring(wreckRes), "ERROR")
+                elseif wreckRes == true then
+                    -- Entrada ja saiu do DB: nada mais a checar neste veiculo.
+                    return
                 end
 
                 local okIntr, errIntr = pcall(PV_CheckVehicleIntruders,

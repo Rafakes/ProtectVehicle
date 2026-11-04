@@ -207,6 +207,14 @@ function PV.Log.timeout(sqlid, owner, lastLogoff)
         "' | lastLogoff=" .. tostring(lastLogoff), "INFO")
 end
 
+-- autoUnclaim: unclaim automatico por motivo que nao e timeout
+-- (sucata/queimado). Sempre echa no console: libera um slot do jogador.
+function PV.Log.autoUnclaim(sqlid, owner, reason)
+    PV.Log.writeVehicle(sqlid,
+        "AUTO-UNCLAIM " .. tostring(reason) ..
+        " | owner '" .. tostring(owner) .. "'", "INFO", true)
+end
+
 -- coordSync: gateado por EnableCoordSyncLogs; nunca echa no console
 function PV.Log.coordSync(playerObj, vehicleObj, sqlid, source)
     local sv = SandboxVars and SandboxVars.ProtectVehicle

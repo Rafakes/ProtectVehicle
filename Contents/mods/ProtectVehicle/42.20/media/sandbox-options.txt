@@ -120,6 +120,18 @@ option ProtectVehicle.TheftAlertCooldownMinutes
 		page = ProtectVehicle, translation = PV_TheftAlertCooldownMinutes,
 }
 
+option ProtectVehicle.AutoUnclaimDestroyed
+{
+		type = boolean, default = true,
+		page = ProtectVehicle, translation = PV_AutoUnclaimDestroyed,
+}
+
+option ProtectVehicle.AutoUnclaimConditionPercent
+{
+		type = integer, min = 0, max = 100, default = 0,
+		page = ProtectVehicle, translation = PV_AutoUnclaimConditionPercent,
+}
+
 option ProtectVehicle.RequireConversionDocument
 {
 		type = boolean, default = false,

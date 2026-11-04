@@ -114,11 +114,15 @@ PV.OnServerCommand = function(module, command, args)
     elseif command == "haloNote" then
         getPlayer():setHaloNote(getText(args.text), 255, 255, 255, 300)
 
-    elseif command == "theftAlert" then
+    elseif command == "pvAlert" then
+        -- Canal generico de alerta do servidor: chave de traducao + ate dois
+        -- parametros (%1/%2) e cor opcional em 0..255.
         local pl = getPlayer()
         if pl then
-            pl:setHaloNote(getText(args.text, tostring(args.p1), tostring(args.p2)),
-                255, 160, 60, 450)
+            local p1 = args.p1 ~= nil and tostring(args.p1) or ""
+            local p2 = args.p2 ~= nil and tostring(args.p2) or ""
+            pl:setHaloNote(getText(args.text, p1, p2),
+                tonumber(args.r) or 255, tonumber(args.g) or 160, tonumber(args.b) or 60, 450)
         end
 
     elseif command == "adminResponse" then
