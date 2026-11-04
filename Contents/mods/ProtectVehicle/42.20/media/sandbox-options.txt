@@ -108,6 +108,18 @@ option ProtectVehicle.WarnUnprotectedVehicle
 		page = ProtectVehicle, translation = PV_WarnUnprotectedVehicle,
 }
 
+option ProtectVehicle.TheftAlertEnabled
+{
+		type = boolean, default = true,
+		page = ProtectVehicle, translation = PV_TheftAlertEnabled,
+}
+
+option ProtectVehicle.TheftAlertCooldownMinutes
+{
+		type = integer, min = 1, max = 1440, default = 10,
+		page = ProtectVehicle, translation = PV_TheftAlertCooldownMinutes,
+}
+
 option ProtectVehicle.RequireConversionDocument
 {
 		type = boolean, default = false,

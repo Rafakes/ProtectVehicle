@@ -3,6 +3,7 @@
     "IGUI_PV_NoPermission_RV": "Acesso negado: você não tem permissão para entrar no interior deste RV.",
     "IGUI_PV_Warn_Unprotected": "Veículo sem proteção: qualquer jogador pode roubá-lo. Use Proteger Veículo para protegê-lo.",
     "IGUI_PV_Warn_Unprotected_Doc": "Veículo sem proteção: qualquer jogador pode roubá-lo. Use um Documento de Veículo para protegê-lo.",
+    "IGUI_PV_Alert_VehicleIntruder": "Alguém sem permissão está no seu %1: %2",
     "IGUI_PV_MissingDocument": "Você precisa de um Documento de Veículo para proteger este veículo.",
     "IGUI_PV_LimitReached": "Você atingiu o número máximo de veículos protegidos.",
     "IGUI_PV_Error_DBNotReady": "O banco de dados ainda não está pronto. Tente novamente em instantes.",

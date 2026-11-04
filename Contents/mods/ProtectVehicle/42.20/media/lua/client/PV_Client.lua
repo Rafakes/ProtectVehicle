@@ -114,6 +114,13 @@ PV.OnServerCommand = function(module, command, args)
     elseif command == "haloNote" then
         getPlayer():setHaloNote(getText(args.text), 255, 255, 255, 300)
 
+    elseif command == "theftAlert" then
+        local pl = getPlayer()
+        if pl then
+            pl:setHaloNote(getText(args.text, tostring(args.p1), tostring(args.p2)),
+                255, 160, 60, 450)
+        end
+
     elseif command == "adminResponse" then
         getPlayer():setHaloNote(getText(args.msg), 255, 255, 255, 300)
 

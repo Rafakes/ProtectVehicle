@@ -416,6 +416,32 @@ local function _isUsernameOnline(username)
     return false
 end
 
+local function PV_getOnlinePlayerByUsername(username)
+    if type(username) ~= "string" or username == "" then return nil end
+
+    if getPlayerFromUsername then
+        local ok, pl = pcall(getPlayerFromUsername, username)
+        if ok and pl then return pl end
+    end
+    if getPlayerByUsername then
+        local ok, pl = pcall(getPlayerByUsername, username)
+        if ok and pl then return pl end
+    end
+
+    if getOnlinePlayers then
+        local op = getOnlinePlayers()
+        if op and op.size and op.get then
+            for i = 0, op:size() - 1 do
+                local pl = op:get(i)
+                if pl and pl.getUsername and pl:getUsername() == username then
+                    return pl
+                end
+            end
+        end
+    end
+    return nil
+end
+
 local function PV_buildOnlineUsernameSet()
     local online = {}
     local players = getOnlinePlayers and getOnlinePlayers() or nil
@@ -761,6 +787,106 @@ local function PV_PollPlayerDisconnect()
     PV_onlinePlayers = currentOnline
 end
 
+-- ============================================================
+-- DETECCAO DE INTRUSO (camada de servidor)
+--
+-- Todos os bloqueios de dirigir/entrar vivem em overrides de cliente,
+-- entao um cliente modificado (ou um mod que substitua as mesmas
+-- timed actions) passa por eles sem o servidor saber. O sweep abaixo
+-- roda no servidor e olha quem esta de fato sentado nos veiculos
+-- protegidos: se o ocupante nao tem permissao, gera log de seguranca,
+-- avisa o intruso e avisa o dono se ele estiver online.
+--
+-- Nao e bloqueio: o servidor nao tira ninguem do carro de forma
+-- confiavel em B42. O objetivo e deixar rastro auditavel.
+-- ============================================================
+local _pvIntrusionAlertAt = {}
+
+local function PV_getIntrusionCooldownSeconds()
+    local sv = SandboxVars.ProtectVehicle
+    local minutes = tonumber(sv and sv.TheftAlertCooldownMinutes) or 10
+    if minutes < 1 then minutes = 1 end
+    return minutes * 60
+end
+
+--- Ocupantes do veiculo como { character=, username=, seat= }.
+--- Usa getDriver() e getCharacter(seat) com feature detection: se a build
+--- nao expor nenhum dos dois, devolve lista vazia e o sweep nao faz nada.
+local function PV_collectVehicleOccupants(vehicleObj)
+    local out, seen = {}, {}
+
+    local function add(chr, seat)
+        if not chr or not chr.getUsername then return end
+        local ok, name = pcall(function() return chr:getUsername() end)
+        if not ok or type(name) ~= "string" or name == "" then return end
+        if seen[name] then return end
+        seen[name] = true
+        out[#out + 1] = { character = chr, username = name, seat = seat }
+    end
+
+    if vehicleObj.getDriver then
+        local ok, drv = pcall(function() return vehicleObj:getDriver() end)
+        if ok then add(drv, 0) end
+    end
+
+    if vehicleObj.getMaxPassengers and vehicleObj.getCharacter then
+        local okMax, maxSeats = pcall(function() return vehicleObj:getMaxPassengers() end)
+        if okMax and type(maxSeats) == "number" then
+            for seat = 0, maxSeats - 1 do
+                local okChr, chr = pcall(function() return vehicleObj:getCharacter(seat) end)
+                if okChr then add(chr, seat) end
+            end
+        end
+    end
+
+    return out
+end
+
+local function PV_CheckVehicleIntruders(vehicleObj, sqlid, entry)
+    local sv = SandboxVars.ProtectVehicle
+    if sv and sv.TheftAlertEnabled == false then return end
+
+    local ownerID = entry and entry.OwnerPlayerID or nil
+    if type(ownerID) ~= "string" or ownerID == "" then return end
+
+    local occupants = PV_collectVehicleOccupants(vehicleObj)
+    if #occupants == 0 then return end
+
+    local now = getTimestamp()
+    local cooldown = PV_getIntrusionCooldownSeconds()
+    local vehicleName = PV.getVehicleDisplayNameFromModel(entry.CarModel)
+
+    for _, occ in ipairs(occupants) do
+        if occ.username ~= ownerID then
+            local flagName = (occ.seat == 0) and "AllowDrive" or "AllowPassenger"
+            -- Em caso de erro no check NAO acusa ninguem: so alerta quando a
+            -- permissao foi avaliada e deu negada.
+            local ok, allowed = pcall(PV.canPerformAction, occ.character, vehicleObj, flagName)
+            if ok and allowed ~= true then
+                local key = tostring(sqlid) .. "|" .. occ.username
+                local last = _pvIntrusionAlertAt[key] or 0
+                if (now - last) >= cooldown then
+                    _pvIntrusionAlertAt[key] = now
+
+                    PV.Log.intrusion(occ.character, vehicleObj, sqlid, ownerID, occ.seat)
+
+                    sendServerCommand(occ.character, "ProtectVehicle", "haloNote",
+                        { text = "IGUI_PV_NoPermission" })
+
+                    local ownerObj = PV_getOnlinePlayerByUsername(ownerID)
+                    if ownerObj then
+                        sendServerCommand(ownerObj, "ProtectVehicle", "theftAlert", {
+                            text = "IGUI_PV_Alert_VehicleIntruder",
+                            p1 = tostring(vehicleName or "?"),
+                            p2 = tostring(occ.username),
+                        })
+                    end
+                end
+            end
+        end
+    end
+end
+
 local function PV_ScanLoadedClaimedVehicles()
     if type(PV.dbByVehicleSQLID) ~= "table" then return end
     local cell = getCell and getCell() or nil
@@ -779,6 +905,13 @@ local function PV_ScanLoadedClaimedVehicles()
                 })
                 if changed then
                     PV.Log.coordSync(nil, vehicleObj, sqlid, "server_sweep")
+                end
+
+                local okIntr, errIntr = pcall(PV_CheckVehicleIntruders,
+                    vehicleObj, sqlid, PV.getVehicleDBEntry(sqlid))
+                if not okIntr then
+                    PV.Log.writeGlobal("Intrusion check failed for sqlid " .. tostring(sqlid)
+                        .. ": " .. tostring(errIntr), "ERROR")
                 end
             end
         end

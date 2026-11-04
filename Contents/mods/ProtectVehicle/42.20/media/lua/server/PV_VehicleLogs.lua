@@ -169,6 +169,26 @@ function PV.Log.actionDenied(playerObj, vehicleObj, sqlid, action)
         "' | coords " .. coords, "SECURITY")
 end
 
+-- intrusion: ocupante sem permissao detectado pelo sweep do servidor.
+-- Sempre echa no console (forceConsole=true): e evento de seguranca.
+function PV.Log.intrusion(playerObj, vehicleObj, sqlid, ownerID, seat)
+    local username = "UNKNOWN"
+    local coords   = "(?,?,?)"
+    if playerObj and playerObj.getUsername then
+        pcall(function() username = playerObj:getUsername() end)
+    end
+    pcall(function()
+        coords = "(" .. math.floor(vehicleObj:getX()) .. ","
+                     .. math.floor(vehicleObj:getY()) .. ","
+                     .. math.floor(vehicleObj:getZ()) .. ")"
+    end)
+    PV.Log.writeVehicle(sqlid,
+        "INTRUSION DETECTED | occupant '" .. username ..
+        "' | seat " .. tostring(seat) ..
+        " | owner '" .. tostring(ownerID) ..
+        "' | coords " .. coords, "SECURITY", true)
+end
+
 -- adminAction sempre aparece no console (forceConsole=true)
 function PV.Log.adminAction(adminObj, sqlid, action, details)
     local adminName = "UNKNOWN"
