@@ -133,6 +133,26 @@ Detalhes do comportamento:
 Cada jogador recebe **apenas a propria lista**, por comando direcionado; o
 cliente nunca pede a chave `PVNotices`. Ver a ressalva em "O que o mod protege".
 
+## Apelido do veiculo
+
+Botao **Renomear**, no card de informacoes do painel do dono. Com varios
+carros do mesmo modelo na lista, "Chevalier Dart" tres vezes nao diz nada;
+com apelido a lista fica legivel, e o nome aparece tambem no painel de admin,
+nos avisos e nos logs.
+
+- Ate 24 caracteres. Dono ou staff, mesma regra de desproteger e transferir.
+- Caixa de texto ja vem com o apelido atual para editar. Apagar tudo e
+  confirmar remove o apelido e devolve o nome do modelo.
+- No card de informacoes o modelo continua aparecendo entre parenteses, para o
+  dono nao perder a referencia de que carro e aquele.
+- O texto e saneado **no servidor**, nao no cliente: fora caractere de
+  controle e o sinal de porcentagem. O "%" sai porque nome de veiculo chega a
+  um `setTooltip` no sistema de documento, e na B42 o texto de tooltip passa
+  por `String.format` - um "%" cru lanca excecao a cada frame de render.
+- A troca de nome vai para o log do veiculo, com o nome velho e o novo: serve
+  para o admin reconstruir quem era quem quando alguem renomeia o carro para
+  confundir numa denuncia.
+
 ## Transferir um veiculo
 
 No painel do dono, botao **Transferir**: pede o nome do jogador e confirma com o
@@ -143,7 +163,9 @@ nome do carro e do destinatario na tela. Regras, todas conferidas no servidor:
   dele, e um jogador inativo veria o claim expirar logo depois);
 - o destinatario nao pode estar no limite de veiculos protegidos;
 - as permissoes **nao** seguem o carro: flags publicas, AllowList, faccao e
-  safehouse voltam a zero, e quem recebe decide de novo quem entra.
+  safehouse voltam a zero, e quem recebe decide de novo quem entra;
+- o apelido tambem nao segue: e o rotulo do dono antigo, e quem recebe ve o
+  modelo de verdade ate escolher o proprio nome.
 
 A troca vai para o log do veiculo e aparece no console.
 

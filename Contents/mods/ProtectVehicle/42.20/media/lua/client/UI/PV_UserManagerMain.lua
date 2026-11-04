@@ -215,6 +215,7 @@ function PV.UI.UserManagerMain:onSelectionChange()
         self.btnUnclaim:setEnable(false)
         self.btnPublicPerms:setEnable(false)
         if self.btnTransfer then self.btnTransfer:setEnable(false) end
+        if self.btnRename then self.btnRename:setEnable(false) end
         local docId   = string.sub(rawKey, 5)
         local docs    = PV.dbDocuments or {}
         local docEntry = docs[docId]
@@ -262,6 +263,7 @@ function PV.UI.UserManagerMain:onSelectionChange()
         self.btnUnclaim:setEnable(hasItem and not isDoc)
         self.btnPublicPerms:setEnable(hasItem and not isDoc)
         if self.btnTransfer then self.btnTransfer:setEnable(hasItem and not isDoc) end
+        if self.btnRename then self.btnRename:setEnable(hasItem and not isDoc) end
         self:updateInfoPanel(sqlid)
         self:setVehiclePreview(sqlid)
         self:refreshAllowList(sqlid)
@@ -403,7 +405,13 @@ function PV.UI.UserManagerMain:updateInfoPanel(sqlid)
         return
     end
     local rawModel = data.CarModel or ""
-    local carName  = PV.getVehicleDisplayNameFromModel(rawModel)
+    local modelName = PV.getVehicleDisplayNameFromModel(rawModel)
+    local carName  = PV.getEntryDisplayName(data)
+    if carName ~= modelName then
+        -- Com apelido, o modelo vai junto: senao o dono perde a referencia de
+        -- que carro "Batmovel" e.
+        carName = getText("UI_PV_User_CarNameWithNick", carName, modelName)
+    end
     local claimedDate = data.ClaimDateTime and os.date("%d-%b-%y %H:%M", data.ClaimDateTime) or "?"
     local expiryText = calcExpiryUser(data.OwnerPlayerID or "")
     
@@ -499,9 +507,7 @@ function PV.UI.UserManagerMain:refreshList()
             if sqlid ~= "LastKnownLogonTime" and sqlid ~= "LastKnownLogoffTime" then
                 local vData = PV.getVehicleDBEntry(sqlid)
                 if vData then
-                    local rawModel = vData.CarModel or ""
-                    local carName  = PV.getVehicleDisplayNameFromModel(rawModel)
-                    self.listVehicles:addItem(carName, sqlid)
+                    self.listVehicles:addItem(PV.getEntryDisplayName(vData), sqlid)
                 end
             end
         end
@@ -633,6 +639,51 @@ function PV.UI.UserManagerMain:onConfirmUnclaim(btn)
 end
 
 -- ============================================================
+-- Renomear o veiculo
+--
+-- Um passo so, sem confirmacao: ao contrario de desproteger e transferir,
+-- renomear nao destroi nada e se desfaz renomeando de novo. A caixa ja vem
+-- com o apelido atual para o jogador editar em vez de redigitar; apagar tudo
+-- e confirmar remove o apelido e devolve o nome do modelo.
+-- ============================================================
+function PV.UI.UserManagerMain:onRenameClick(btn)
+    if not ISTextBox then return end
+    if self.listVehicles.selected < 1 then return end
+    local sqlid = self.listVehicles.items[self.listVehicles.selected].item
+    if not sqlid then return end
+    if type(sqlid) == "string" and string.sub(sqlid, 1, 4) == "doc:" then return end
+
+    local data = PV.getVehicleDBEntry(sqlid)
+    local current = (data and type(data.Nickname) == "string") and data.Nickname or ""
+
+    local w, h = 320, 180
+    local modal = ISTextBox:new(
+        getCore():getScreenWidth()  / 2 - w / 2,
+        getCore():getScreenHeight() / 2 - h / 2,
+        w, h, getText("IGUI_PV_Rename_Prompt", tostring(PV.NICKNAME_MAX_CHARS)), current,
+        self, PV.UI.UserManagerMain.onRenameEntered,
+        getPlayer():getPlayerNum())
+    modal:initialise()
+    modal:addToUIManager()
+end
+
+function PV.UI.UserManagerMain:onRenameEntered(button)
+    if not button or button.internal ~= "OK" then return end
+
+    local entry = button.parent and button.parent.entry
+    local name = entry and entry:getText() or ""
+
+    if self.listVehicles.selected < 1 then return end
+    local sqlid = self.listVehicles.items[self.listVehicles.selected].item
+    if not sqlid then return end
+    if type(sqlid) == "string" and string.sub(sqlid, 1, 4) == "doc:" then return end
+
+    -- Texto cru mesmo: quem sabe o que vale e o servidor, que saneia de novo.
+    sendClientCommand(getPlayer(), "ProtectVehicle", "renameVehicle",
+        { sqlid = sqlid, name = tostring(name) })
+end
+
+-- ============================================================
 -- Transferir propriedade
 --
 -- Dois passos de proposito: a acao e destrutiva para quem transfere
@@ -672,7 +723,7 @@ function PV.UI.UserManagerMain:onTransferTargetEntered(button)
     if type(sqlid) == "string" and string.sub(sqlid, 1, 4) == "doc:" then return end
 
     local data = PV.getVehicleDBEntry(sqlid)
-    local carName = data and PV.getVehicleDisplayNameFromModel(data.CarModel) or "?"
+    local carName = data and PV.getEntryDisplayName(data) or "?"
 
     self.pendingTransfer = { sqlid = sqlid, target = name }
 
@@ -967,6 +1018,20 @@ function PV.UI.UserManagerMain:buildLayout()
     self.lblClaimedVal  = addInfoRow(infoTop + rowH * 2,   "UI_PV_User_Claimed",   0.80, 0.80, 0.88)
     self.lblExpiresVal  = addInfoRow(infoTop + rowH * 3,   "UI_PV_User_ExpiresIn", 0.95, 0.70, 0.30)
     self.lblDistanceVal = addInfoRow(infoTop + rowH * 4,   "UI_PV_User_Distance",  0.70, 0.85, 0.95)
+
+    -- Renomear fica neste card, e nao na barra de acoes, por duas razoes: a
+    -- barra ja tem cinco botoes espremidos, e aqui o botao fica logo abaixo do
+    -- nome que ele muda.
+    local renameH = math.floor(24 * m.scale)
+    if renameH < 20 then renameH = 20 end
+    self.btnRename = ISButton:new(labelX, sh - renameH - PAD, sw - (PAD * 2), renameH,
+        getText("UI_PV_User_Rename"), self, self.onRenameClick)
+    self.btnRename.internal = "btnRename"
+    self.btnRename:initialise(); self.btnRename:instantiate()
+    self.btnRename.font = UIFont.NewSmall
+    PV.UI.ApplyButtonStyle(self.btnRename)
+    self.btnRename:setEnable(false)
+    self.infoPanel:addChild(self.btnRename)
 
     -- ---- ALLOW LIST CARD ----
     self.cardAllow = PV.UI.CardPanel:new(rightX, midY, rightW, midH, getText("UI_PV_Section_AllowList"))

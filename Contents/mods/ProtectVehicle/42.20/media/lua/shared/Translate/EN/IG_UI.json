@@ -150,5 +150,6 @@
     "IGUI_PV_Notice_SlotExpired": "Your rental of %1 slot(s) has expired",
     "IGUI_PV_Notice_SlotGraceStart": "Your %1 loses its protection in %2h unless you rent a slot or release another vehicle",
     "IGUI_PV_Notice_SlotGraceOver": "You are back within your limit: no vehicle at risk",
-    "IGUI_PV_Notice_SlotReleased": "Your %1 lost its protection: the rented slot expired"
+    "IGUI_PV_Notice_SlotReleased": "Your %1 lost its protection: the rented slot expired",
+    "IGUI_PV_Rename_Prompt": "Nickname for this vehicle (up to %1 characters). Leave it empty to go back to the model name."
 }

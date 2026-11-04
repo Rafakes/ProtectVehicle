@@ -364,7 +364,7 @@ function PV.ServerUnclaimVehicle(playerObj, sqlid, isTimeout, reason)
 
     local owner = entry.OwnerPlayerID
 
-    local unclaimVehicleName = tostring(PV.getVehicleDisplayNameFromModel(entry.CarModel) or "?")
+    local unclaimVehicleName = tostring(PV.getEntryDisplayName(entry) or "?")
 
     -- Log it
     if isTimeout then
@@ -524,7 +524,7 @@ local function PV_alertOwnerOfDeniedAttempt(player, vehicleObj, action)
     local ok, allowed = pcall(PV.canPerformAction, player, vehicleObj, action)
     if not ok or allowed == true then return end
 
-    local vehicleName = tostring(PV.getVehicleDisplayNameFromModel(entry.CarModel) or "?")
+    local vehicleName = tostring(PV.getEntryDisplayName(entry) or "?")
 
     -- A caixa de avisos registra TODA tentativa, agrupando repeticao em uma
     -- entrada com contagem. O cooldown abaixo vale so para o log e o halo.
@@ -775,7 +775,7 @@ PV.OnClientCommand = function(module, command, player, args)
         end
 
         local timestamp = getTimestamp()
-        local vehicleName = PV.getVehicleDisplayNameFromModel(entry.CarModel)
+        local vehicleName = PV.getEntryDisplayName(entry)
 
         entry.OwnerPlayerID = target
         entry.ClaimDateTime = timestamp
@@ -786,6 +786,9 @@ PV.OnClientCommand = function(module, command, player, args)
         entry.AllowFaction     = false
         entry.AllowSafehouseRV = false
         entry.AllowFactionRV   = false
+        -- O apelido tambem nao segue: e o rotulo do dono antigo, e quem
+        -- recebe deve ver o modelo de verdade ate decidir o proprio nome.
+        entry.Nickname         = nil
 
         PV.clearPlayerVehicleIndex(oldOwner, sqlid)
         if not PV.dbByPlayerID[target] then
@@ -981,6 +984,22 @@ PV.OnClientCommand = function(module, command, player, args)
             end
         end
 
+    elseif command == "renameVehicle" then
+        local sqlid = PV.toSQLID(args.sqlid)
+        local entry = PV.getVehicleDBEntry(sqlid)
+        -- Dono ou staff, mesma regra de desproteger e transferir.
+        if entry and PV_playerCanManageEntry(player, entry) then
+            local old = entry.Nickname
+            -- Saneado AQUI, nao no cliente: o cliente so sugere.
+            local nick = PV.sanitizeNickname(args.name)
+            if nick ~= old then
+                entry.Nickname = nick
+                ModData.add("PVByVehicleSQLID", PV.dbByVehicleSQLID)
+                PV.Log.rename(sqlid, player:getUsername(), old, nick)
+                PV_syncVehicleData(sqlid)
+            end
+        end
+
     elseif command == "slotsRequest" then
         if PV.Slots and PV.Slots.sendTo then
             pcall(PV.Slots.sendTo, player)
@@ -1166,7 +1185,7 @@ local function PV_AutoUnclaimIfWreck(vehicleObj, sqlid)
     if not reason then return false end
 
     local owner = entry.OwnerPlayerID
-    local vehicleName = PV.getVehicleDisplayNameFromModel(entry.CarModel)
+    local vehicleName = PV.getEntryDisplayName(entry)
 
     PV.ServerUnclaimVehicle(nil, sqlid, true, "destroyed:" .. reason)
 
@@ -1253,7 +1272,7 @@ local function PV_CheckVehicleIntruders(vehicleObj, sqlid, entry)
 
     local now = getTimestamp()
     local cooldown = PV_getIntrusionCooldownSeconds()
-    local vehicleName = PV.getVehicleDisplayNameFromModel(entry.CarModel)
+    local vehicleName = PV.getEntryDisplayName(entry)
 
     for _, occ in ipairs(occupants) do
         if occ.username ~= ownerID then

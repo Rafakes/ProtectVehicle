@@ -149,5 +149,6 @@
     "IGUI_PV_Notice_SlotExpired": "O seu aluguel de %1 slot(s) venceu",
     "IGUI_PV_Notice_SlotGraceStart": "O seu %1 perde a proteção em %2h se você não alugar um slot ou desproteger outro veículo",
     "IGUI_PV_Notice_SlotGraceOver": "Você voltou para dentro do limite: nenhum veículo em risco",
-    "IGUI_PV_Notice_SlotReleased": "O seu %1 perdeu a proteção: o slot alugado venceu"
+    "IGUI_PV_Notice_SlotReleased": "O seu %1 perdeu a proteção: o slot alugado venceu",
+    "IGUI_PV_Rename_Prompt": "Apelido para este veículo (até %1 caracteres). Deixe vazio para voltar ao nome do modelo."
 }

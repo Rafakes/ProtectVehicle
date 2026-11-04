@@ -228,7 +228,7 @@ local function ownedVehiclesNewestFirst(username)
                 out[#out + 1] = {
                     sqlid = k,
                     claimed = tonumber(entry.ClaimDateTime) or 0,
-                    name = tostring(PV.getVehicleDisplayNameFromModel(entry.CarModel) or "?"),
+                    name = tostring(PV.getEntryDisplayName(entry) or "?"),
                 }
             end
         end

@@ -208,6 +208,15 @@ function PV.Log.transfer(sqlid, oldOwner, newOwner, byWhom)
         "' by '" .. tostring(byWhom) .. "'", "INFO", true)
 end
 
+--- rename: fica no arquivo do veiculo. Serve para o admin reconstruir quem
+--- era quem quando um jogador renomeia o carro para confundir numa denuncia.
+function PV.Log.rename(sqlid, byWhom, oldName, newName)
+    PV.Log.writeVehicle(sqlid,
+        "RENAME '" .. tostring(oldName or "-") ..
+        "' -> '" .. tostring(newName or "-") ..
+        "' by '" .. tostring(byWhom) .. "'", "INFO")
+end
+
 -- timeout: arquivo sempre, console sem force (evento automatico, nao critico)
 function PV.Log.timeout(sqlid, owner, lastLogoff)
     PV.Log.writeVehicle(sqlid,

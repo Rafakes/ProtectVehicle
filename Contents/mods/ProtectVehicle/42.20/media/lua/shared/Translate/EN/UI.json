@@ -98,5 +98,7 @@
     "UI_PV_Slots_LeftMin": "%1 min left",
     "UI_PV_Slots_LeftHour": "%1 h left",
     "UI_PV_Slots_LeftDay": "%1 d left",
-    "UI_PV_Slots_Dot": "\u2022"
+    "UI_PV_Slots_Dot": "\u2022",
+    "UI_PV_User_Rename": "Rename",
+    "UI_PV_User_CarNameWithNick": "%1 (%2)"
 }

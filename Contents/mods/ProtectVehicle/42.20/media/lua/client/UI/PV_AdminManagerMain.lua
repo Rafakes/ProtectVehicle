@@ -290,7 +290,7 @@ function PV.UI.AdminManagerMain:initList()
     local temp = {}
     for sqlid, data in pairs(PV.dbByVehicleSQLID) do
         local rawModel = data.CarModel or ""
-    local carName  = PV.getVehicleDisplayNameFromModel(rawModel)
+        local carName  = PV.getEntryDisplayName(data)
         local loc = ""
         if data.LastLocationX and data.LastLocationY then
             loc = tostring(data.LastLocationX) .. ", " .. tostring(data.LastLocationY)
