@@ -392,10 +392,10 @@ function PV.UI.UserManagerMain:updateInfoPanel(sqlid)
     if not self.lblCarNameVal then return end
     local data = sqlid and PV.getVehicleDBEntry(sqlid)
     if not data then
-        self.lblCarNameVal:setName("â€”")
-        self.lblLocationVal:setName("â€”")
-        self.lblClaimedVal:setName("â€”")
-        self.lblExpiresVal:setName("â€”")
+        self.lblCarNameVal:setName("-")
+        self.lblLocationVal:setName("-")
+        self.lblClaimedVal:setName("-")
+        self.lblExpiresVal:setName("-")
         if self.lblDistanceVal then self.lblDistanceVal:setName("-") end
         self.locSqlid = nil
         return
@@ -579,7 +579,7 @@ function PV.UI.UserManagerMain:onConfirmUnclaim(btn)
     
     -- FIXED: Aguardar um frame para garantir que o servidor processa antes de atualizar UI
     -- O servidor vai enviar o comando "removeVehicle" que vai limpar o DB e atualizar a UI
-    -- Mas precisamos limpar a seleÃ§Ã£o local imediatamente para evitar clicks duplicados
+    -- Mas precisamos limpar a seleção local imediatamente para evitar clicks duplicados
     self.listVehicles.selected = 0
     self:onSelectionChange()
 end
@@ -807,7 +807,7 @@ function PV.UI.UserManagerMain:buildLayout()
     local function addInfoRow(y, labelKey, r, g, b)
         local lbl = ISLabel:new(labelX, y, rowH, getText(labelKey), c.textMuted.r, c.textMuted.g, c.textMuted.b, 1, UIFont.NewSmall, true)
         lbl:initialise(); lbl:instantiate(); self.infoPanel:addChild(lbl)
-        local val = ISLabel:new(valueX, y, rowH, "â€”", r or c.text.r, g or c.text.g, b or c.text.b, 1, UIFont.NewSmall, true)
+        local val = ISLabel:new(valueX, y, rowH, "-", r or c.text.r, g or c.text.g, b or c.text.b, 1, UIFont.NewSmall, true)
         val:initialise(); val:instantiate(); self.infoPanel:addChild(val)
         return val
     end

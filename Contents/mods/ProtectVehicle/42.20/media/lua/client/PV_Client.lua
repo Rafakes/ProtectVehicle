@@ -129,7 +129,7 @@ PV.OnServerCommand = function(module, command, args)
         getPlayer():setHaloNote(getText(args.msg), 255, 255, 255, 300)
 
     elseif command == "adminTpToVehicle" then
-        -- SÃ³ exibe o haloNote de confirmaÃ§Ã£o; o movimento real jÃ¡ foi feito
+        -- Só exibe o haloNote de confirmação; o movimento real já foi feito
         -- pelo servidor (teleportTo) + pelo comando "forceTeleport" abaixo.
         local player = getPlayer()
         if player then
@@ -137,8 +137,8 @@ PV.OnServerCommand = function(module, command, args)
         end
 
     elseif command == "forceTeleport" then
-        -- Fallback idÃªntico ao AACS: cliente aplica teleporte localmente para garantir
-        -- o movimento quando o chunk nÃ£o estava carregado no servidor no momento do TP.
+        -- Fallback idêntico ao AACS: cliente aplica teleporte localmente para garantir
+        -- o movimento quando o chunk não estava carregado no servidor no momento do TP.
         local player = getPlayer()
         local x = tonumber(args.x)
         local y = tonumber(args.y)
@@ -300,7 +300,7 @@ function PV.OnPreFillWorldObjectContextMenu(player, context, worldObjects, test)
     end
     if #ownedSqlids == 0 then return end
 
-    -- Build submenu "ProtectVehicle: [target] > [VeÃ­culo] > [aÃ§Ã£o]"
+    -- Build submenu "ProtectVehicle: [target] > [Veículo] > [ação]"
     local pvOption = context:addOption("ProtectVehicle: " .. targetPlayer, nil, nil)
     local subMenu  = ISContextMenu:getNew(context)
     context:addSubMenu(pvOption, subMenu)
@@ -320,7 +320,7 @@ function PV.OnPreFillWorldObjectContextMenu(player, context, worldObjects, test)
         return t
     end
 
-    -- For each owned vehicle: vehicle name â†’ sub-submenu with actions
+    -- For each owned vehicle: vehicle name -> sub-submenu with actions
     for _, sqlid in ipairs(ownedSqlids) do
         local vData    = PV.getVehicleDBEntry(sqlid)
         local rawModel = vData and vData.CarModel or tostring(sqlid)
@@ -335,8 +335,8 @@ function PV.OnPreFillWorldObjectContextMenu(player, context, worldObjects, test)
         subMenu:addSubMenu(vOpt, vSubMenu)
 
         local sid = sqlid -- capture for closures
-        -- FIX #5: addOption(text, target, onSelect) â€” target nÃ£o pode ser nil em B42
-        -- Passamos a funÃ§Ã£o como target E como onSelect (compatibilidade com variaÃ§Ãµes da API)
+        -- FIX #5: addOption(text, target, onSelect) - target não pode ser nil em B42
+        -- Passamos a função como target E como onSelect (compatibilidade com variações da API)
         local function mkOpt(txt, flags)
             local fn = function() sendQuickAllow(sid, flags) end
             vSubMenu:addOption(txt, fn, fn)
@@ -376,16 +376,16 @@ Events.OnPreFillWorldObjectContextMenu.Add(PV.OnPreFillWorldObjectContextMenu)
 Events.OnReceiveGlobalModData.Add(PV.OnReceiveGlobalModData)
 
 -- ============================================================
--- COORD SYNC: Entrada e saÃ­da de veÃ­culo
+-- COORD SYNC: Entrada e saída de veículo
 --
--- B42 NÃƒO tem Events.OnCharacterGetInVehicle/Out.
+-- B42 NÃO tem Events.OnCharacterGetInVehicle/Out.
 --
--- Entrada: override de ISEnterVehicle:perform() â€” roda no
---   cliente ao fim da timed action, veÃ­culo garantidamente vÃ¡lido.
+-- Entrada: override de ISEnterVehicle:perform() - roda no
+--   cliente ao fim da timed action, veículo garantidamente válido.
 --
--- SaÃ­da: watcher leve via OnTick â€” compara veÃ­culo atual com
+-- Saída: watcher leve via OnTick - compara veículo atual com
 --   o do tick anterior; quando muda de "dentro" para "fora"
---   dispara o sync. Custo mÃ­nimo: apenas 2 comparaÃ§Ãµes por tick.
+--   dispara o sync. Custo mínimo: apenas 2 comparações por tick.
 -- ============================================================
 
 -- ============================================================
@@ -501,14 +501,14 @@ if ISEnterVehicle then
     end
 end
 
--- SAÃDA: watcher via OnTick (Ãºnica forma confiÃ¡vel em B42)
+-- SAÍDA: watcher via OnTick (única forma confiável em B42)
 local _pvLastVehicle = nil
 
 local function PV_WatchVehicleExit()
     local player = getPlayer()
     if not player then return end
     local curVeh = player:getVehicle()
-    -- Detecta transiÃ§Ã£o: estava dentro â†’ agora fora
+    -- Detecta transição: estava dentro -> agora fora
     if _pvLastVehicle and not curVeh then
         if PV.dbByVehicleSQLID then
             local sqlid = PV.getVehicleID and PV.getVehicleID(_pvLastVehicle)

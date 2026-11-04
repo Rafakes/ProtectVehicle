@@ -5,11 +5,11 @@
     B42.14.x
     
     FIXED:
-    - Coordenadas agora aparecem corretamente (loc Ã¢â€ â€™ location)
-    - "Claimed On" agora aparece corretamente (date Ã¢â€ â€™ claimedDate)
-    - BotÃƒÂ£o "Go To" alterado para "Teleport"
-    - BotÃƒÂ£o "Locate" alterado para "Refresh Loc"
-    - Unclaim agora atualiza UI corretamente apÃƒÂ³s remoÃƒÂ§ÃƒÂ£o
+    - Coordenadas agora aparecem corretamente (loc -> location)
+    - "Claimed On" agora aparece corretamente (date -> claimedDate)
+    - Botão "Go To" alterado para "Teleport"
+    - Botão "Locate" alterado para "Refresh Loc"
+    - Unclaim agora atualiza UI corretamente após remoção
 --]]
 
 if not isClient() and isServer() then return end
@@ -198,8 +198,8 @@ end
 
 -- ============================================================
 -- Filter
--- FIX: Em B42 o ISTextEntryBox.onTextChange ÃƒÂ© chamado como
---   onTextChange(widgetSelf)  Ã¢â‚¬â€ nÃƒÂ£o passa o 'owner/target'.
+-- FIX: Em B42 o ISTextEntryBox.onTextChange é chamado como
+--   onTextChange(widgetSelf)  - não passa o 'owner/target'.
 --   Por isso usamos closures que capturam 'panel' (AdminManagerMain).
 -- ============================================================
 local function PV_getTextEntryValue(entry)
@@ -301,8 +301,8 @@ function PV.UI.AdminManagerMain:initList()
             sqlid         = sqlid,
             ownerID       = data.OwnerPlayerID or "?",
             carName       = carName,
-            location      = loc,  -- FIXED: Usando 'location' ao invÃƒÂ©s de 'loc'
-            claimedDate   = claimedDate,  -- FIXED: Usando 'claimedDate' ao invÃƒÂ©s de 'date'
+            location      = loc,  -- FIXED: Usando 'location' ao invés de 'loc'
+            claimedDate   = claimedDate,  -- FIXED: Usando 'claimedDate' ao invés de 'date'
             expiry        = expiry,
             expiryOnline  = expiryOnline,
         })
@@ -367,7 +367,7 @@ function PV.UI.AdminManagerMain:onConfirmUnclaim(btn)
     
     -- FIXED: Aguardar um frame para garantir que o servidor processa antes de atualizar UI
     -- O servidor vai enviar o comando "removeVehicle" que vai limpar o DB e atualizar a UI
-    -- Mas precisamos limpar a seleÃƒÂ§ÃƒÂ£o local imediatamente para evitar clicks duplicados
+    -- Mas precisamos limpar a seleção local imediatamente para evitar clicks duplicados
     self.listData.selected = 0
     self:onSelectionChange()
 end

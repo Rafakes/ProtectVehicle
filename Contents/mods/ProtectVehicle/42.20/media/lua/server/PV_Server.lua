@@ -54,22 +54,22 @@ function PV.InitDB()
     PV.dbByVehicleSQLID = ModData.get("PVByVehicleSQLID")
     PV.dbByPlayerID     = ModData.get("PVByPlayerID")
 
-    -- Garante que sÃƒÂ£o tabelas (ModData pode retornar nil em server dedicado limpo)
+    -- Garante que são tabelas (ModData pode retornar nil em server dedicado limpo)
     if type(PV.dbByVehicleSQLID) ~= "table" then
         PV.dbByVehicleSQLID = {}
         ModData.add("PVByVehicleSQLID", PV.dbByVehicleSQLID)
-        print("[PV] PVByVehicleSQLID era nil/invÃƒÂ¡lido Ã¢â‚¬â€ reinicializado como tabela vazia.")
+        print("[PV] PVByVehicleSQLID era nil/inválido - reinicializado como tabela vazia.")
     end
     if type(PV.dbByPlayerID) ~= "table" then
         PV.dbByPlayerID = {}
         ModData.add("PVByPlayerID", PV.dbByPlayerID)
-        print("[PV] PVByPlayerID era nil/invÃƒÂ¡lido Ã¢â‚¬â€ reinicializado como tabela vazia.")
+        print("[PV] PVByPlayerID era nil/inválido - reinicializado como tabela vazia.")
     end
     -- Chaves numericas podem vir como string apos persistencia JSON do ModData - normalizar antes da validacao
     if PV.normalizeVehicleDatabaseKeys and PV.normalizeVehicleDatabaseKeys() then
         ModData.add("PVByVehicleSQLID", PV.dbByVehicleSQLID)
         ModData.add("PVByPlayerID", PV.dbByPlayerID)
-        print("[PV] Chaves SQLID normalizadas (number) apÃƒÂ³s deserialize.")
+        print("[PV] Chaves SQLID normalizadas (number) após deserialize.")
     end
 
     -- Normaliza estrutura do DB do proprio PV (campos novos, version bump)
@@ -80,16 +80,16 @@ function PV.InitDB()
         local o = entry.OwnerPlayerID
         if o == nil or o == "" or o == "__UNKNOWN__" then
             orphans = orphans + 1
-            print("[PV] AVISO: veÃƒÂ­culo sqlid=" .. tostring(sqlid) .. " sem OwnerPlayerID vÃƒÂ¡lido (valor='" .. tostring(o) .. "'). Use o painel Admin para corrigir ou remover.")
+            print("[PV] AVISO: veículo sqlid=" .. tostring(sqlid) .. " sem OwnerPlayerID válido (valor='" .. tostring(o) .. "'). Use o painel Admin para corrigir ou remover.")
         end
     end
     if orphans > 0 then
-        print("[PV] AVISO: " .. orphans .. " veÃƒÂ­culo(s) ÃƒÂ³rfÃƒÂ£o(s) detectado(s) apÃƒÂ³s migraÃƒÂ§ÃƒÂ£o. Apenas admins podem fazer unclaim desses veÃƒÂ­culos.")
+        print("[PV] AVISO: " .. orphans .. " veículo(s) órfão(s) detectado(s) após migração. Apenas admins podem fazer unclaim desses veículos.")
     end
 
     local vCount = 0; for _ in pairs(PV.dbByVehicleSQLID) do vCount = vCount + 1 end
     local pCount = 0; for _ in pairs(PV.dbByPlayerID) do pCount = pCount + 1 end
-    print(string.format("[PV] DB pronto. VeÃƒÂ­culos: %d | Jogadores: %d", vCount, pCount))
+    print(string.format("[PV] DB pronto. Veículos: %d | Jogadores: %d", vCount, pCount))
 end
 
 -- ============================================================
@@ -156,7 +156,7 @@ function PV.ServerClaimVehicle(playerObj, vehicleObj)
     end
 
     -- 2. Check Document requirement
-    -- PadrÃƒÂ£o AACS: validaÃƒÂ§ÃƒÂ£o APENAS depois de confirmar que o claim vai acontecer.
+    -- Padrão AACS: validação APENAS depois de confirmar que o claim vai acontecer.
     -- Default: "Base.VehicleDocument" (module Base para compatibilidade MP).
     -- Admin pode configurar outro item via VehicleDocumentItemType no sandbox.
     if SandboxVars.ProtectVehicle.RequireVehicleDocumentForClaim then
@@ -170,7 +170,7 @@ function PV.ServerClaimVehicle(playerObj, vehicleObj)
             return
         end
 
-        -- Consume if configured (padrÃƒÂ£o AACS: pcall + inv:Remove + sendRemoveItemFromContainer)
+        -- Consume if configured (padrão AACS: pcall + inv:Remove + sendRemoveItemFromContainer)
         if SandboxVars.ProtectVehicle.ConsumeVehicleDocumentOnClaim then
             local synced = false
             local ok, err = pcall(function()
@@ -263,8 +263,8 @@ local function PV_tryClearVehicleWorldSQLID(sqlid)
 end
 
 -- Helper: devolve um VehicleDocument ao jogador ao fazer unclaim.
--- PadrÃƒÂ£o AACS: instanceItem() + pcall + sendAddItemToContainer.
--- Se inventÃƒÂ¡rio cheio, dropa no chÃƒÂ£o perto do jogador.
+-- Padrão AACS: instanceItem() + pcall + sendAddItemToContainer.
+-- Se inventário cheio, dropa no chão perto do jogador.
 local function _giveDocumentToPlayer(playerObj)
     if not playerObj then return false end
     local inv = playerObj:getInventory()
@@ -274,7 +274,7 @@ local function _giveDocumentToPlayer(playerObj)
         and SandboxVars.ProtectVehicle.VehicleDocumentItemType)
         or "Base.VehicleDocument"
 
-    -- B42: instanceItem() ÃƒÂ© o mÃƒÂ©todo correto no servidor
+    -- B42: instanceItem() é o método correto no servidor
     local item = nil
     pcall(function() item = instanceItem(docType) end)
     if not item then
@@ -324,7 +324,7 @@ end
 function PV.ServerUnclaimVehicle(playerObj, sqlid, isTimeout, reason)
     sqlid = PV.toSQLID(sqlid)
 
-    -- Defensive: DB nÃƒÂ£o inicializado
+    -- Defensive: DB não inicializado
     if not PV.dbByVehicleSQLID then
         PV.Log.writeGlobal("[PV] ServerUnclaimVehicle: dbByVehicleSQLID is nil for sqlid=" .. tostring(sqlid))
         if playerObj then
@@ -334,7 +334,7 @@ function PV.ServerUnclaimVehicle(playerObj, sqlid, isTimeout, reason)
         return
     end
 
-    -- VeÃƒÂ­culo nÃƒÂ£o existe no DB
+    -- Veículo não existe no DB
     local entry = PV.getVehicleDBEntry(sqlid)
     if not entry then
         PV.Log.writeGlobal("[PV] ServerUnclaimVehicle: Vehicle " .. tostring(sqlid) .. " not found in DB")
@@ -371,8 +371,8 @@ function PV.ServerUnclaimVehicle(playerObj, sqlid, isTimeout, reason)
     PV_tryClearVehicleWorldSQLID(sqlid)
     sendServerCommand("ProtectVehicle", "clearVehicleSQLID", { sqlid = sqlid })
 
-    -- DevoluÃƒÂ§ÃƒÂ£o do documento ao unclaim (padrÃƒÂ£o AACS: ReturnDocumentOnUnclaim)
-    -- CondiÃƒÂ§ÃƒÂ£o: RequireDoc + ConsumeDoc + ReturnDoc + dono fazendo unclaim manual
+    -- Devolução do documento ao unclaim (padrão AACS: ReturnDocumentOnUnclaim)
+    -- Condição: RequireDoc + ConsumeDoc + ReturnDoc + dono fazendo unclaim manual
     if not isTimeout and playerObj then
         local sv = SandboxVars.ProtectVehicle
         if sv
@@ -645,14 +645,14 @@ PV.OnClientCommand = function(module, command, player, args)
     elseif command == "unclaim" then
         local sqlid = PV.toSQLID(args.sqlid)
 
-        -- Defensive: DB nÃƒÂ£o pronto
+        -- Defensive: DB não pronto
         if type(PV.dbByVehicleSQLID) ~= "table" then
             sendServerCommand(player, "ProtectVehicle", "haloNote",
                 { text = "IGUI_PV_Error_DBNotReady", r=1, g=0.2, b=0.2 })
             return
         end
 
-        -- VeÃƒÂ­culo nÃƒÂ£o existe
+        -- Veículo não existe
         local entry = PV.getVehicleDBEntry(sqlid)
         if not entry then
             sendServerCommand(player, "ProtectVehicle", "haloNote",
@@ -774,17 +774,17 @@ PV.OnClientCommand = function(module, command, player, args)
         end
     elseif command == "logon" then
         -- FIX #7: registra TODOS os jogadores no DB ao conectar,
-        -- nÃƒÂ£o apenas quem jÃƒÂ¡ tem veÃƒÂ­culo. Isso permite rastrear
+        -- não apenas quem já tem veículo. Isso permite rastrear
         -- logon/logoff de qualquer jogador para fins de auditoria e timeout.
         local username  = player:getUsername()
         local now       = getTimestamp()
 
         if PV.dbByPlayerID[username] then
-            -- Jogador jÃƒÂ¡ existe: atualiza horÃƒÂ¡rios
+            -- Jogador já existe: atualiza horários
             PV.dbByPlayerID[username].LastKnownLogonTime  = now
             PV.dbByPlayerID[username].LastKnownLogoffTime = now
         else
-            -- Novo jogador: cria entrada mÃƒÂ­nima
+            -- Novo jogador: cria entrada mínima
             PV.dbByPlayerID[username] = {
                 LastKnownLogonTime  = now,
                 LastKnownLogoffTime = now,
@@ -801,7 +801,7 @@ PV.OnClientCommand = function(module, command, player, args)
         end
 
     elseif command == "syncCoord" then
-        -- ForÃƒÂ§ar atualizaÃƒÂ§ÃƒÂ£o de coordenada (enter/exit veÃƒÂ­culo).
+        -- Forçar atualização de coordenada (enter/exit veículo).
         local vehicleId = args.vehicleId and (tonumber(args.vehicleId) or args.vehicleId) or nil
         local vehicleObj = vehicleId and getVehicleById(vehicleId) or nil
         if vehicleObj and PV_vehicleIsNearPlayer(player, vehicleObj, 12) then
@@ -1121,9 +1121,9 @@ local PV_VehicleTowGuard = function(module, command, player, args)
         local okB = PV_canTowVehicleForPlayer(vehicleB)
         if okA and okB then return end
 
-        -- Os hooks de cliente jÃ¡ bloqueiam o attach antes da timed action
-        -- vanilla na maior parte dos casos. Evitamos forÃ§ar um breakConstraint
-        -- tardio aqui porque isso pode gerar picos de fÃ­sica e "carro voando".
+        -- Os hooks de cliente já bloqueiam o attach antes da timed action
+        -- vanilla na maior parte dos casos. Evitamos forçar um breakConstraint
+        -- tardio aqui porque isso pode gerar picos de física e "carro voando".
         sendServerCommand(player, "ProtectVehicle", "haloNote",
             { text = "IGUI_PV_NoPermission", r=1, g=0.2, b=0.2 })
 
@@ -1161,12 +1161,12 @@ local PV_RVServerGuard = function(module, command, player, args)
     if module ~= "RVServer" or command ~= "enterRV" then return end
     if not args then return end
 
-    -- Localizar o veÃƒÂ­culo pelo ID enviado pelo cliente
+    -- Localizar o veículo pelo ID enviado pelo cliente
     local vehicleId = args.vehicleId and (tonumber(args.vehicleId) or args.vehicleId) or nil
     local vehicle = vehicleId and getVehicleById(vehicleId) or nil
 
     if not vehicle then
-        -- Sem veÃƒÂ­culo identificado: bloquear por seguranÃƒÂ§a
+        -- Sem veículo identificado: bloquear por segurança
         sendServerCommand(player, "ProtectVehicle", "haloNote",
             { text = "IGUI_PV_NoPermission_RV", r=1, g=0.2, b=0.2 })
         -- Zeramos args para invalidar o comando para handlers subsequentes
@@ -1175,7 +1175,7 @@ local PV_RVServerGuard = function(module, command, player, args)
         return
     end
     
-    -- Verificar permissÃ£o PV
+    -- Verificar permissão PV
     local allowed = true
     if PV.canEnterRV then
         allowed = PV.canEnterRV(player, vehicle)
@@ -1195,4 +1195,4 @@ Events.OnClientCommand.Add(PV.OnClientCommand)
 Events.EveryOneMinute.Add(PV_PollPlayerDisconnect)
 Events.EveryOneMinute.Add(PV_ScanLoadedClaimedVehicles)
 Events.EveryTenMinutes.Add(PV.CheckTimeouts)
--- Events.OnVehicleAdded NÃƒÆ’O existe na B42 Ã¢â‚¬â€ removido.
+-- Events.OnVehicleAdded NÃO existe na B42 - removido.
