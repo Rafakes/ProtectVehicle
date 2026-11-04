@@ -47,6 +47,16 @@ local function PV_showNoPermission(character)
     end
 end
 
+-- Mesma mensagem de sempre, mais o report para o dono saber da tentativa.
+-- action tem de ser um nome de flag de PV.DEFAULT_FLAGS: o servidor
+-- reconfere essa flag antes de avisar quem quer que seja.
+local function PV_denyAndReport(character, vehicle, action)
+    PV_showNoPermission(character)
+    if PV.reportDeniedAction then
+        pcall(PV.reportDeniedAction, character, vehicle, action)
+    end
+end
+
 local function PV_canOpenVehiclePart(character, vehicle, part)
     if PV.getSimpleBooleanPermission(PV.checkPermission(character, vehicle)) then
         return true
@@ -81,7 +91,7 @@ local function PV_isVehicleActionAllowed(character, vehicle, flagName)
     if PV_canUseFlag(character, vehicle, flagName) then
         return true
     end
-    PV_showNoPermission(character)
+    PV_denyAndReport(character, vehicle, flagName)
     return false
 end
 
@@ -100,7 +110,7 @@ if ISEnterVehicle and ISEnterVehicle.new then
         if PV_canUseFlag(character, vehicle, flagName) then
             return PV._oISEnterVehicle(self, character, vehicle, seat)
         end
-        character:setHaloNote(getText("IGUI_PV_NoPermission"), 250, 100, 100, 300)
+        PV_denyAndReport(character, vehicle, flagName)
         return PV_Deny(character)
     end
 end
@@ -122,7 +132,7 @@ if ISSwitchVehicleSeat and ISSwitchVehicleSeat.new then
         if PV_canUseFlag(character, veh, flagName) then
             return PV._oISSwitchVehicleSeat(self, character, seatTo)
         end
-        character:setHaloNote(getText("IGUI_PV_NoPermission"), 250, 100, 100, 300)
+        PV_denyAndReport(character, veh, flagName)
         return PV_Deny(character)
     end
 end
@@ -144,7 +154,8 @@ if ISVehicleMenu and ISVehicleMenu.FillMenuOutsideVehicle then
         if PV_canOpenVehiclePart(character, vehicle, part) then
             return oldNew(self, character, vehicle, part)
         end
-        character:setHaloNote(getText("IGUI_PV_NoPermission"), 250, 100, 100, 300)
+        local deniedFlag = isTrunkPart(part) and "AllowOpeningTrunk" or "AllowOpeningDoors"
+        PV_denyAndReport(character, vehicle, deniedFlag)
         return PV_Deny(character)
     end
 end

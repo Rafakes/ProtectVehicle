@@ -447,6 +447,59 @@ local function PV_getOnlinePlayerByUsername(username)
     return nil
 end
 
+-- ============================================================
+-- ALERTA DE TENTATIVA NEGADA
+--
+-- O cliente reporta que uma acao foi bloqueada (comando reportDenied).
+-- Nada do que ele manda e aceito de graca: o nome do jogador vem do
+-- proprio comando, a flag tem de existir em PV.DEFAULT_FLAGS e a
+-- permissao e reconferida aqui. Se o jogador na verdade TEM permissao,
+-- nao houve negacao e o alerta nao sai - e assim que um cliente
+-- modificado nao consegue forjar aviso no nome de outra pessoa.
+-- ============================================================
+local _pvDeniedAlertAt = {}
+
+local function PV_alertOwnerOfDeniedAttempt(player, vehicleObj, action)
+    local sv = SandboxVars.ProtectVehicle
+    if sv and sv.DeniedAttemptAlert == false then return end
+    if not player or not vehicleObj then return end
+
+    -- Flag desconhecida: report descartado.
+    if type(action) ~= "string" or PV.DEFAULT_FLAGS[action] == nil then return end
+
+    local sqlid = PV.getVehicleID(vehicleObj)
+    local entry = sqlid and PV.getVehicleDBEntry(sqlid) or nil
+    if not entry then return end
+
+    local owner = entry.OwnerPlayerID
+    local username = player:getUsername()
+    if type(owner) ~= "string" or owner == "" or owner == username then return end
+
+    -- Tem permissao: o report nao corresponde a uma negacao real.
+    local ok, allowed = pcall(PV.canPerformAction, player, vehicleObj, action)
+    if not ok or allowed == true then return end
+
+    local cooldownMinutes = tonumber(sv and sv.TheftAlertCooldownMinutes) or 10
+    if cooldownMinutes < 1 then cooldownMinutes = 1 end
+
+    local now = getTimestamp()
+    local key = tostring(sqlid) .. "|" .. username .. "|" .. action
+    local last = _pvDeniedAlertAt[key] or 0
+    if (now - last) < (cooldownMinutes * 60) then return end
+    _pvDeniedAlertAt[key] = now
+
+    PV.Log.actionDenied(player, vehicleObj, sqlid, action)
+
+    local ownerObj = PV_getOnlinePlayerByUsername(owner)
+    if ownerObj then
+        sendServerCommand(ownerObj, "ProtectVehicle", "pvAlert", {
+            text = "IGUI_PV_Alert_DeniedAttempt",
+            p1 = tostring(PV.getVehicleDisplayNameFromModel(entry.CarModel) or "?"),
+            p2 = tostring(username),
+        })
+    end
+end
+
 local function PV_buildOnlineUsernameSet()
     local online = {}
     local players = getOnlinePlayers and getOnlinePlayers() or nil
@@ -739,6 +792,13 @@ PV.OnClientCommand = function(module, command, player, args)
             PV.Log.writeGlobal("New player registered in DB: '" .. username .. "'", "INFO")
         end
         ModData.add("PVByPlayerID", PV.dbByPlayerID)
+
+    elseif command == "reportDenied" then
+        local vehicleId = tonumber(args.vehicleId)
+        local vehicleObj = vehicleId and getVehicleById(vehicleId) or nil
+        if vehicleObj then
+            PV_alertOwnerOfDeniedAttempt(player, vehicleObj, args.action)
+        end
 
     elseif command == "syncCoord" then
         -- ForÃƒÂ§ar atualizaÃƒÂ§ÃƒÂ£o de coordenada (enter/exit veÃƒÂ­culo).

@@ -5,6 +5,7 @@
     "IGUI_PV_Warn_Unprotected_Doc": "Veículo sem proteção: qualquer jogador pode roubá-lo. Use um Documento de Veículo para protegê-lo.",
     "IGUI_PV_Alert_VehicleIntruder": "Alguém sem permissão está no seu %1: %2",
     "IGUI_PV_Alert_VehicleWreck": "Seu %1 foi destruído; a proteção dele foi liberada.",
+    "IGUI_PV_Alert_DeniedAttempt": "Alguém sem permissão tentou mexer no seu %1: %2",
     "IGUI_PV_MissingDocument": "Você precisa de um Documento de Veículo para proteger este veículo.",
     "IGUI_PV_LimitReached": "Você atingiu o número máximo de veículos protegidos.",
     "IGUI_PV_Error_DBNotReady": "O banco de dados ainda não está pronto. Tente novamente em instantes.",

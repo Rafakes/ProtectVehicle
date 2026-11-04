@@ -24,20 +24,26 @@ function ISInventoryTransferAction:isValid()
         return vehiclePart and vehiclePart:getVehicle() or nil
     end
 
-    local srcVehicle = getVehicleFromContainer(self.srcContainer)
-    if srcVehicle and not PV.canPerformAction(self.character, srcVehicle, "AllowContainersAccess") then
+    -- isValid roda repetidamente enquanto a acao esta na fila; o throttle
+    -- de PV.reportDeniedAction evita inundar o servidor e o dono.
+    local function denied(vehicleObj)
         if self.character then
             self.character:setHaloNote(getText("IGUI_PV_NoPermission"), 250, 100, 100, 300)
+            if PV.reportDeniedAction then
+                pcall(PV.reportDeniedAction, self.character, vehicleObj, "AllowContainersAccess")
+            end
         end
         return false
     end
 
+    local srcVehicle = getVehicleFromContainer(self.srcContainer)
+    if srcVehicle and not PV.canPerformAction(self.character, srcVehicle, "AllowContainersAccess") then
+        return denied(srcVehicle)
+    end
+
     local dstVehicle = getVehicleFromContainer(self.destContainer)
     if dstVehicle and not PV.canPerformAction(self.character, dstVehicle, "AllowContainersAccess") then
-        if self.character then
-            self.character:setHaloNote(getText("IGUI_PV_NoPermission"), 250, 100, 100, 300)
-        end
-        return false
+        return denied(dstVehicle)
     end
 
     return PV.oISInventoryTransferActionValid(self)

@@ -389,6 +389,46 @@ Events.OnReceiveGlobalModData.Add(PV.OnReceiveGlobalModData)
 -- ============================================================
 
 -- ============================================================
+-- REPORT DE TENTATIVA NEGADA
+--
+-- Os bloqueios acontecem no cliente, entao sem isto o dono nunca fica
+-- sabendo que alguem tentou mexer no carro dele. Mandamos so o id do
+-- veiculo e o nome da flag; quem o jogador e, o servidor sabe pelo
+-- proprio comando, e e lá que a permissao e reconferida.
+--
+-- Throttle local porque alguns isValid() rodam a cada frame enquanto a
+-- acao esta na fila.
+-- ============================================================
+local PV_DENIED_REPORT_COOLDOWN_MS = 30000
+local _pvDeniedReportAt = {}
+
+function PV.reportDeniedAction(character, vehicleObj, action)
+    local sv = SandboxVars.ProtectVehicle
+    if sv and sv.DeniedAttemptAlert == false then return end
+    if not character or not vehicleObj or not action then return end
+    if character ~= getPlayer() then return end
+
+    -- Sem DB ou sem dono nao ha quem avisar.
+    if type(PV.dbByVehicleSQLID) ~= "table" then return end
+    local sqlid = PV.getVehicleID and PV.getVehicleID(vehicleObj) or nil
+    if not sqlid or not PV.getVehicleDBEntry(sqlid) then return end
+
+    local vid = vehicleObj.getId and vehicleObj:getId() or nil
+    if not vid then return end
+
+    local key = tostring(sqlid) .. "|" .. tostring(action)
+    local now = (getTimestampMs and getTimestampMs()) or 0
+    local last = _pvDeniedReportAt[key] or 0
+    if (now - last) < PV_DENIED_REPORT_COOLDOWN_MS then return end
+    _pvDeniedReportAt[key] = now
+
+    sendClientCommand(character, "ProtectVehicle", "reportDenied", {
+        vehicleId = vid,
+        action = tostring(action),
+    })
+end
+
+-- ============================================================
 -- AVISO: veiculo sem protecao
 --
 -- Ao entrar num veiculo que nao esta protegido pelo mod
