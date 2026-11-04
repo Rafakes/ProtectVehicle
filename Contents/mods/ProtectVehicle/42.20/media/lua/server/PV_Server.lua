@@ -671,6 +671,103 @@ PV.OnClientCommand = function(module, command, player, args)
             PV.Log.writeGlobal("[PV] ACTION DENIED 'unclaim_not_owner' for '" .. player:getUsername() .. "' | Vehicle " .. tostring(sqlid) .. " | owner='" .. tostring(entry.OwnerPlayerID) .. "'")
         end
 
+    elseif command == "transferOwner" then
+        -- Troca de dono pedida pelo dono atual (ou por staff).
+        --
+        -- O alvo tem de estar ONLINE: assim da para ler a role dele (o
+        -- limite de apoiador depende disso), avisar na hora, e nao corremos
+        -- o risco de entregar o veiculo a quem esta inativo ha tanto tempo
+        -- que o CheckTimeouts liberaria o claim em seguida.
+        local sqlid  = PV.toSQLID(args.sqlid)
+        local target = PV.normalizeUsername(args.targetPlayer)
+        if not sqlid or not target then return end
+
+        local function fail(msgKey)
+            sendServerCommand(player, "ProtectVehicle", "haloNote", { text = msgKey })
+        end
+
+        if type(PV.dbByVehicleSQLID) ~= "table" or type(PV.dbByPlayerID) ~= "table" then
+            fail("IGUI_PV_Error_DBNotReady")
+            return
+        end
+
+        local entry = PV.getVehicleDBEntry(sqlid)
+        if not entry then
+            fail("IGUI_PV_Error_VehicleNotClaimed")
+            return
+        end
+        if not PV_playerCanManageEntry(player, entry) then
+            fail("IGUI_PV_Error_NotOwner")
+            return
+        end
+
+        local oldOwner = entry.OwnerPlayerID
+        if target == oldOwner then
+            fail("IGUI_PV_Transfer_SameOwner")
+            return
+        end
+
+        local targetObj = PV_getOnlinePlayerByUsername(target)
+        if not targetObj then
+            fail("IGUI_PV_Transfer_NotOnline")
+            return
+        end
+        if not PV.checkMaxClaim(targetObj) then
+            fail("IGUI_PV_Transfer_TargetLimit")
+            return
+        end
+
+        local timestamp = getTimestamp()
+        local vehicleName = PV.getVehicleDisplayNameFromModel(entry.CarModel)
+
+        entry.OwnerPlayerID = target
+        entry.ClaimDateTime = timestamp
+        -- Permissao nao segue o carro: quem recebe decide de novo quem entra.
+        entry.PublicFlags     = {}
+        entry.AllowList       = {}
+        entry.AllowSafehouse   = false
+        entry.AllowFaction     = false
+        entry.AllowSafehouseRV = false
+        entry.AllowFactionRV   = false
+
+        PV.clearPlayerVehicleIndex(oldOwner, sqlid)
+        if not PV.dbByPlayerID[target] then
+            PV.dbByPlayerID[target] = {
+                LastKnownLogonTime  = timestamp,
+                LastKnownLogoffTime = timestamp,
+                [sqlid] = true,
+            }
+        else
+            PV.dbByPlayerID[target][sqlid] = true
+            PV.dbByPlayerID[target].LastKnownLogonTime = timestamp
+        end
+
+        ModData.add("PVByVehicleSQLID", PV.dbByVehicleSQLID)
+        ModData.add("PVByPlayerID", PV.dbByPlayerID)
+
+        PV.Log.transfer(sqlid, oldOwner, target, player:getUsername())
+
+        PV_syncVehicleData(sqlid)
+        if PV.dbByPlayerID[oldOwner] then
+            sendServerCommand("ProtectVehicle", "updatePlayerData",
+                { username = oldOwner, data = PV.dbByPlayerID[oldOwner] })
+        end
+        sendServerCommand("ProtectVehicle", "updatePlayerData",
+            { username = target, data = PV.dbByPlayerID[target] })
+
+        sendServerCommand(player, "ProtectVehicle", "pvAlert", {
+            text = "IGUI_PV_Transfer_Done",
+            p1 = tostring(vehicleName or "?"),
+            p2 = tostring(target),
+            r = 120, g = 230, b = 120,
+        })
+        sendServerCommand(targetObj, "ProtectVehicle", "pvAlert", {
+            text = "IGUI_PV_Transfer_Received",
+            p1 = tostring(vehicleName or "?"),
+            p2 = tostring(oldOwner),
+            r = 120, g = 230, b = 120,
+        })
+
     elseif command == "updateFlags" then
         local sqlid = PV.toSQLID(args.sqlid)
         local delta = args.delta

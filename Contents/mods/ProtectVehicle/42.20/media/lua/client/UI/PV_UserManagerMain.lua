@@ -214,6 +214,7 @@ function PV.UI.UserManagerMain:onSelectionChange()
         -- Document-state vehicle: disable claim management, show basic info
         self.btnUnclaim:setEnable(false)
         self.btnPublicPerms:setEnable(false)
+        if self.btnTransfer then self.btnTransfer:setEnable(false) end
         local docId   = string.sub(rawKey, 5)
         local docs    = PV.dbDocuments or {}
         local docEntry = docs[docId]
@@ -260,6 +261,7 @@ function PV.UI.UserManagerMain:onSelectionChange()
         local sqlid = rawKey
         self.btnUnclaim:setEnable(hasItem and not isDoc)
         self.btnPublicPerms:setEnable(hasItem and not isDoc)
+        if self.btnTransfer then self.btnTransfer:setEnable(hasItem and not isDoc) end
         self:updateInfoPanel(sqlid)
         self:setVehiclePreview(sqlid)
         self:refreshAllowList(sqlid)
@@ -580,6 +582,79 @@ function PV.UI.UserManagerMain:onConfirmUnclaim(btn)
     -- FIXED: Aguardar um frame para garantir que o servidor processa antes de atualizar UI
     -- O servidor vai enviar o comando "removeVehicle" que vai limpar o DB e atualizar a UI
     -- Mas precisamos limpar a seleção local imediatamente para evitar clicks duplicados
+    self.listVehicles.selected = 0
+    self:onSelectionChange()
+end
+
+-- ============================================================
+-- Transferir propriedade
+--
+-- Dois passos de proposito: a acao e destrutiva para quem transfere
+-- (perde o veiculo e o acesso) e nao tem desfazer. Primeiro pede o
+-- nome, depois confirma com o nome do carro e do destinatario na tela.
+-- Toda a validacao de verdade acontece no servidor.
+-- ============================================================
+function PV.UI.UserManagerMain:onTransferClick(btn)
+    if not ISTextBox then return end
+    if self.listVehicles.selected < 1 then return end
+    local sqlid = self.listVehicles.items[self.listVehicles.selected].item
+    if not sqlid then return end
+    if type(sqlid) == "string" and string.sub(sqlid, 1, 4) == "doc:" then return end
+
+    local w, h = 320, 180
+    local modal = ISTextBox:new(
+        getCore():getScreenWidth()  / 2 - w / 2,
+        getCore():getScreenHeight() / 2 - h / 2,
+        w, h, getText("IGUI_PV_Transfer_Prompt"), "",
+        self, PV.UI.UserManagerMain.onTransferTargetEntered,
+        getPlayer():getPlayerNum())
+    modal:initialise()
+    modal:addToUIManager()
+end
+
+function PV.UI.UserManagerMain:onTransferTargetEntered(button)
+    if not button or button.internal ~= "OK" then return end
+
+    local entry = button.parent and button.parent.entry
+    local name = entry and entry:getText() or ""
+    name = tostring(name):match("^%s*(.-)%s*$")
+    if name == "" then return end
+
+    if self.listVehicles.selected < 1 then return end
+    local sqlid = self.listVehicles.items[self.listVehicles.selected].item
+    if not sqlid then return end
+    if type(sqlid) == "string" and string.sub(sqlid, 1, 4) == "doc:" then return end
+
+    local data = PV.getVehicleDBEntry(sqlid)
+    local carName = data and PV.getVehicleDisplayNameFromModel(data.CarModel) or "?"
+
+    self.pendingTransfer = { sqlid = sqlid, target = name }
+
+    if self.modDialog ~= nil then
+        self.modDialog:close(); self.modDialog:removeFromUIManager(); self.modDialog = nil
+    end
+    local w, h = 360, 140
+    self.modDialog = ISModalDialog:new(
+        getCore():getScreenWidth()  / 2 - w / 2,
+        getCore():getScreenHeight() / 2 - h / 2,
+        w, h, getText("IGUI_PV_ConfirmTransfer", carName, name),
+        true, self, PV.UI.UserManagerMain.onConfirmTransfer,
+        getPlayer():getPlayerNum(), nil)
+    self.modDialog:initialise()
+    self.modDialog:addToUIManager()
+end
+
+function PV.UI.UserManagerMain:onConfirmTransfer(btn)
+    local pending = self.pendingTransfer
+    self.pendingTransfer = nil
+    if btn and btn.internal == "NO" then return end
+    if not pending or not pending.sqlid or not pending.target then return end
+
+    sendClientCommand(getPlayer(), "ProtectVehicle", "transferOwner",
+        { sqlid = pending.sqlid, targetPlayer = pending.target })
+
+    -- O servidor responde com updatePlayerData/updateVehicleData e a lista
+    -- se refaz; limpamos a selecao para nao agir sobre um item que saiu.
     self.listVehicles.selected = 0
     self:onSelectionChange()
 end
@@ -994,7 +1069,7 @@ self:setAllowTab("players")
 
     local bx, by, bw, bh = self.cardActions:getInnerRect()
     local padBtn = math.floor(4 * m.scale)
-    local nBtns  = 4
+    local nBtns  = 5
 
     -- Slightly smaller buttons + safe margin so they never bleed outside the card border
     local actBtnH = math.floor(26 * m.scale)
@@ -1023,6 +1098,7 @@ self:setAllowTab("players")
     end
 
     self.btnUnclaim      = addBtn(getText("UI_PV_User_Unclaim"),       "btnUnclaim",      "danger",  self.onUnclaimClick)
+    self.btnTransfer     = addBtn(getText("UI_PV_User_Transfer"),      "btnTransfer",     "danger",  self.onTransferClick)
     self.btnRemovePlayer = addBtn(getText("IGUI_PV_AllowList_Remove"), "btnRemovePlayer", "danger",  self.onRemovePlayerClick)
     self.btnPlayerPerms  = addBtn(getText("UI_PV_User_Manage"),        "btnPlayerPerms",  "primary", self.onPlayerPermsClick)
     self.btnPublicPerms  = addBtn(getText("IGUI_PV_PublicPerms"),      "btnPublicPerms",  "primary", self.onPublicPermsClick)

@@ -200,6 +200,14 @@ function PV.Log.adminAction(adminObj, sqlid, action, details)
         "' | " .. tostring(details or ""), "ADMIN", true)
 end
 
+-- transfer: troca de dono. Sempre no console, como claim e unclaim.
+function PV.Log.transfer(sqlid, oldOwner, newOwner, byWhom)
+    PV.Log.writeVehicle(sqlid,
+        "TRANSFER owner '" .. tostring(oldOwner) ..
+        "' -> '" .. tostring(newOwner) ..
+        "' by '" .. tostring(byWhom) .. "'", "INFO", true)
+end
+
 -- timeout: arquivo sempre, console sem force (evento automatico, nao critico)
 function PV.Log.timeout(sqlid, owner, lastLogoff)
     PV.Log.writeVehicle(sqlid,

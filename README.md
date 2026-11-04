@@ -27,6 +27,20 @@ ficam nas paginas **Protect Vehicle** e **Protect Vehicle - Documents** do Sandb
 - **Painel de admin**: botao direito no chao, apenas para admin e moderator.
 - **Permissoes de um veiculo**: botao direito no veiculo, ou pelo painel do dono.
 
+## Transferir um veiculo
+
+No painel do dono, botao **Transferir**: pede o nome do jogador e confirma com o
+nome do carro e do destinatario na tela. Regras, todas conferidas no servidor:
+
+- so o dono atual ou staff pode transferir;
+- o destinatario tem de estar **online** (o limite de apoiador depende da role
+  dele, e um jogador inativo veria o claim expirar logo depois);
+- o destinatario nao pode estar no limite de veiculos protegidos;
+- as permissoes **nao** seguem o carro: flags publicas, AllowList, faccao e
+  safehouse voltam a zero, e quem recebe decide de novo quem entra.
+
+A troca vai para o log do veiculo e aparece no console.
+
 ## Como a permissao e resolvida
 
 A ordem abaixo e a que `PV.checkPermission` e `PV.canPerformAction` seguem
