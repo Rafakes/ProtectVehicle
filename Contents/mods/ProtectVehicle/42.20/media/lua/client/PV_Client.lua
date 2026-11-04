@@ -26,6 +26,29 @@ end
 -- ============================================================
 -- SERVER -> CLIENT HANDLER
 -- ============================================================
+-- Caixa de avisos do jogador local. Preenchida pelo comando "pvNotices".
+PV.notices = PV.notices or {}
+PV.noticesUnread = PV.noticesUnread or 0
+
+-- Slots de protecao do jogador local. Preenchido pelo comando "pvSlots".
+PV.mySlots = PV.mySlots or nil
+
+-- O limite em PV.getClaimLimit (shared) vale para qualquer jogador, mas o
+-- cliente so conhece os slots DELE: para qualquer outro, zero.
+--
+-- Num servidor-host o cliente e o servidor rodam no mesmo estado Lua e os dois
+-- arquivos definem este resolvedor. O do servidor le o ModData e vale para
+-- todo mundo, entao ele tem de ganhar: aqui so preenchemos se ninguem
+-- preencheu antes.
+if type(PV.resolveBonusSlots) ~= "function" then
+    PV.resolveBonusSlots = function(playerObj)
+        if not PV.mySlots or not playerObj then return 0 end
+        local me = getPlayer()
+        if not me or playerObj ~= me then return 0 end
+        return (tonumber(PV.mySlots.rented) or 0) + (tonumber(PV.mySlots.grace) or 0)
+    end
+end
+
 PV.OnServerCommand = function(module, command, args)
     if module ~= "ProtectVehicle" then return end
 
@@ -111,14 +134,48 @@ PV.OnServerCommand = function(module, command, args)
         local e = PV.getVehicleDBEntry(PV.canonicalVehicleSqlid(args.sqlid))
         if e then e.PublicFlags = args.flags end
 
+    elseif command == "pvSlots" then
+        PV.mySlots = args
+        if PV.UI.SlotsInstance and PV.UI.SlotsInstance:isVisible() then
+            PV.UI.SlotsInstance:refreshAll()
+        end
+        if PV.UI.UserInstance and PV.UI.UserInstance:isVisible() then
+            PV.UI.UserInstance:updateClaimStatus()
+            PV.UI.UserInstance:updateSlotsButton()
+        end
+
+    elseif command == "pvNotices" then
+        -- A caixa de avisos do proprio jogador. Chega sempre direcionada: o
+        -- cliente nunca pede o ModData PVNotices, que tem a de todo mundo.
+        PV.notices = (type(args.items) == "table") and args.items or {}
+        PV.noticesUnread = tonumber(args.unread) or 0
+
+        if PV.UI.NoticesInstance and PV.UI.NoticesInstance:isVisible() then
+            PV.UI.NoticesInstance:refreshList()
+        end
+        if PV.UI.UserInstance and PV.UI.UserInstance:isVisible() then
+            PV.UI.UserInstance:updateNoticesButton()
+        end
+
     elseif command == "haloNote" then
         getPlayer():setHaloNote(getText(args.text), 255, 255, 255, 300)
+
+    elseif command == "pvAlert" then
+        -- Canal generico de alerta do servidor: chave de traducao + ate dois
+        -- parametros (%1/%2) e cor opcional em 0..255.
+        local pl = getPlayer()
+        if pl then
+            local p1 = args.p1 ~= nil and tostring(args.p1) or ""
+            local p2 = args.p2 ~= nil and tostring(args.p2) or ""
+            pl:setHaloNote(getText(args.text, p1, p2),
+                tonumber(args.r) or 255, tonumber(args.g) or 160, tonumber(args.b) or 60, 450)
+        end
 
     elseif command == "adminResponse" then
         getPlayer():setHaloNote(getText(args.msg), 255, 255, 255, 300)
 
     elseif command == "adminTpToVehicle" then
-        -- SÃ³ exibe o haloNote de confirmaÃ§Ã£o; o movimento real jÃ¡ foi feito
+        -- Só exibe o haloNote de confirmação; o movimento real já foi feito
         -- pelo servidor (teleportTo) + pelo comando "forceTeleport" abaixo.
         local player = getPlayer()
         if player then
@@ -126,8 +183,8 @@ PV.OnServerCommand = function(module, command, args)
         end
 
     elseif command == "forceTeleport" then
-        -- Fallback idÃªntico ao AACS: cliente aplica teleporte localmente para garantir
-        -- o movimento quando o chunk nÃ£o estava carregado no servidor no momento do TP.
+        -- Fallback idêntico ao AACS: cliente aplica teleporte localmente para garantir
+        -- o movimento quando o chunk não estava carregado no servidor no momento do TP.
         local player = getPlayer()
         local x = tonumber(args.x)
         local y = tonumber(args.y)
@@ -303,7 +360,7 @@ function PV.OnPreFillWorldObjectContextMenu(player, context, worldObjects, test)
     end
     if #ownedSqlids == 0 then return end
 
-    -- Build submenu "ProtectVehicle: [target] > [VeÃ­culo] > [aÃ§Ã£o]"
+    -- Build submenu "ProtectVehicle: [target] > [Veículo] > [ação]"
     local pvOption = context:addOption("ProtectVehicle: " .. targetPlayer, nil, nil)
     local subMenu  = ISContextMenu:getNew(context)
     context:addSubMenu(pvOption, subMenu)
@@ -323,7 +380,7 @@ function PV.OnPreFillWorldObjectContextMenu(player, context, worldObjects, test)
         return t
     end
 
-    -- For each owned vehicle: vehicle name â†’ sub-submenu with actions
+    -- For each owned vehicle: vehicle name -> sub-submenu with actions
     for _, sqlid in ipairs(ownedSqlids) do
         local vData    = PV.getVehicleDBEntry(sqlid)
         local rawModel = vData and vData.CarModel or tostring(sqlid)
@@ -338,8 +395,8 @@ function PV.OnPreFillWorldObjectContextMenu(player, context, worldObjects, test)
         subMenu:addSubMenu(vOpt, vSubMenu)
 
         local sid = sqlid -- capture for closures
-        -- FIX #5: addOption(text, target, onSelect) â€” target nÃ£o pode ser nil em B42
-        -- Passamos a funÃ§Ã£o como target E como onSelect (compatibilidade com variaÃ§Ãµes da API)
+        -- FIX #5: addOption(text, target, onSelect) - target não pode ser nil em B42
+        -- Passamos a função como target E como onSelect (compatibilidade com variações da API)
         local function mkOpt(txt, flags)
             local fn = function() sendQuickAllow(sid, flags) end
             vSubMenu:addOption(txt, fn, fn)
@@ -379,27 +436,123 @@ Events.OnPreFillWorldObjectContextMenu.Add(PV.OnPreFillWorldObjectContextMenu)
 Events.OnReceiveGlobalModData.Add(PV.OnReceiveGlobalModData)
 
 -- ============================================================
--- COORD SYNC: Entrada e saÃ­da de veÃ­culo
+-- COORD SYNC: Entrada e saída de veículo
 --
--- B42 NÃƒO tem Events.OnCharacterGetInVehicle/Out.
+-- B42 NÃO tem Events.OnCharacterGetInVehicle/Out.
 --
--- Entrada: override de ISEnterVehicle:perform() â€” roda no
---   cliente ao fim da timed action, veÃ­culo garantidamente vÃ¡lido.
+-- Entrada: override de ISEnterVehicle:perform() - roda no
+--   cliente ao fim da timed action, veículo garantidamente válido.
 --
--- SaÃ­da: watcher leve via OnTick â€” compara veÃ­culo atual com
+-- Saída: watcher leve via OnTick - compara veículo atual com
 --   o do tick anterior; quando muda de "dentro" para "fora"
---   dispara o sync. Custo mÃ­nimo: apenas 2 comparaÃ§Ãµes por tick.
+--   dispara o sync. Custo mínimo: apenas 2 comparações por tick.
 -- ============================================================
+
+-- ============================================================
+-- REPORT DE TENTATIVA NEGADA
+--
+-- Os bloqueios acontecem no cliente, entao sem isto o dono nunca fica
+-- sabendo que alguem tentou mexer no carro dele. Mandamos so o id do
+-- veiculo e o nome da flag; quem o jogador e, o servidor sabe pelo
+-- proprio comando, e e lá que a permissao e reconferida.
+--
+-- Throttle local porque alguns isValid() rodam a cada frame enquanto a
+-- acao esta na fila.
+-- ============================================================
+local PV_DENIED_REPORT_COOLDOWN_MS = 30000
+local _pvDeniedReportAt = {}
+
+function PV.reportDeniedAction(character, vehicleObj, action)
+    local sv = SandboxVars.ProtectVehicle
+    if sv and sv.DeniedAttemptAlert == false then return end
+    if not character or not vehicleObj or not action then return end
+    if character ~= getPlayer() then return end
+
+    -- Sem DB ou sem dono nao ha quem avisar.
+    if type(PV.dbByVehicleSQLID) ~= "table" then return end
+    local sqlid = PV.getVehicleID and PV.getVehicleID(vehicleObj) or nil
+    if not sqlid or not PV.getVehicleDBEntry(sqlid) then return end
+
+    local vid = vehicleObj.getId and vehicleObj:getId() or nil
+    if not vid then return end
+
+    local key = tostring(sqlid) .. "|" .. tostring(action)
+    local now = (getTimestampMs and getTimestampMs()) or 0
+    local last = _pvDeniedReportAt[key] or 0
+    if (now - last) < PV_DENIED_REPORT_COOLDOWN_MS then return end
+    _pvDeniedReportAt[key] = now
+
+    sendClientCommand(character, "ProtectVehicle", "reportDenied", {
+        vehicleId = vid,
+        action = tostring(action),
+    })
+end
+
+-- ============================================================
+-- AVISO: veiculo sem protecao
+--
+-- Ao entrar num veiculo que nao esta protegido pelo mod
+-- (sem SQLID, ou SQLID orfao sem entrada no DB) mostra um
+-- halo note avisando que qualquer jogador pode roubar o carro.
+--
+-- Nao avisa quando o DB ainda nao chegou ao cliente: nesse
+-- caso nao da para saber se o veiculo tem dono.
+-- Cooldown por veiculo para nao repetir a cada entrada.
+-- ============================================================
+local PV_UNPROTECTED_WARN_COOLDOWN_MS = 300000  -- 5 min de tempo real por veiculo
+local _pvUnprotectedWarnAt = {}
+
+local function PV_nowMs()
+    if getTimestampMs then return getTimestampMs() end
+    if getTimestamp then return getTimestamp() * 1000 end
+    return 0
+end
+
+--- true quando o veiculo nao tem protecao do mod (livre para qualquer um).
+function PV.isVehicleUnprotected(vehicleObj)
+    if not vehicleObj then return false end
+    -- DB ainda nao sincronizado: fica em silencio em vez de avisar errado.
+    if type(PV.dbByVehicleSQLID) ~= "table" then return false end
+    local sqlid = PV.getVehicleID and PV.getVehicleID(vehicleObj) or nil
+    if sqlid == nil then return true end
+    return PV.getVehicleDBEntry(sqlid) == nil
+end
+
+function PV.warnIfVehicleUnprotected(playerObj, vehicleObj)
+    local sv = SandboxVars.ProtectVehicle
+    if sv and sv.WarnUnprotectedVehicle == false then return end
+    if not playerObj or not vehicleObj then return end
+    if playerObj ~= getPlayer() then return end
+    if not PV.isVehicleUnprotected(vehicleObj) then return end
+
+    local now = PV_nowMs()
+    local key = vehicleObj.getId and vehicleObj:getId() or nil
+    if key ~= nil then
+        local last = _pvUnprotectedWarnAt[key]
+        if last and (now - last) < PV_UNPROTECTED_WARN_COOLDOWN_MS then return end
+        _pvUnprotectedWarnAt[key] = now
+    end
+
+    local requiresDoc = sv and sv.RequireVehicleDocumentForClaim == true
+    local msgKey = requiresDoc and "IGUI_PV_Warn_Unprotected_Doc" or "IGUI_PV_Warn_Unprotected"
+    playerObj:setHaloNote(getText(msgKey), 255, 200, 80, 400)
+end
 
 -- ENTRADA: override ISEnterVehicle:perform()
 if ISEnterVehicle then
     local _oPVEnterPerform = ISEnterVehicle.perform
     function ISEnterVehicle:perform()
         _oPVEnterPerform(self)
-        -- Dispara sync apÃ³s entrar no veÃ­culo
         local veh = self.vehicle
         if not veh or not self.character then return end
         if self.character ~= getPlayer() then return end
+
+        -- Aviso de veiculo sem protecao (so no assento do motorista)
+        if type(self.seat) ~= "number" or self.seat == 0 then
+            pcall(PV.warnIfVehicleUnprotected, self.character, veh)
+        end
+
+        -- Dispara sync apos entrar no veiculo
         if not PV.dbByVehicleSQLID then return end
         local sqlid = PV.getVehicleID and PV.getVehicleID(veh)
         if sqlid and PV.getVehicleDBEntry(sqlid) then
@@ -408,14 +561,14 @@ if ISEnterVehicle then
     end
 end
 
--- SAÃDA: watcher via OnTick (Ãºnica forma confiÃ¡vel em B42)
+-- SAÍDA: watcher via OnTick (única forma confiável em B42)
 local _pvLastVehicle = nil
 
 local function PV_WatchVehicleExit()
     local player = getPlayer()
     if not player then return end
     local curVeh = player:getVehicle()
-    -- Detecta transiÃ§Ã£o: estava dentro â†’ agora fora
+    -- Detecta transição: estava dentro -> agora fora
     if _pvLastVehicle and not curVeh then
         if PV.dbByVehicleSQLID then
             local sqlid = PV.getVehicleID and PV.getVehicleID(_pvLastVehicle)
@@ -428,3 +581,53 @@ local function PV_WatchVehicleExit()
 end
 
 Events.OnTick.Add(PV_WatchVehicleExit)
+
+-- ============================================================
+-- ATALHO DE TECLADO: abre "Meus Veiculos Protegidos"
+--
+-- Entra em Opcoes > Teclas SEM tecla definida: assim nao briga com
+-- atalho do jogo nem de outro mod, e cada jogador escolhe a sua. A
+-- opcao no menu de contexto continua existindo.
+--
+-- O texto mostrado na lista de teclas vem de
+-- UI_optionscreen_binding_<value>; sem a chave, o jogo cai no proprio
+-- value, que por isso ja e legivel.
+-- ============================================================
+local PV_KEYBIND_NAME = "Protect Vehicle"
+
+if keyBinding then
+    table.insert(keyBinding, { value = "[Protect Vehicle]" })
+    table.insert(keyBinding, {
+        value = PV_KEYBIND_NAME,
+        key = (Keyboard and Keyboard.KEY_NONE) or 0,
+    })
+end
+
+local function PV_isTypingInChat()
+    local entry = ISChat and ISChat.instance and ISChat.instance.textEntry
+    if not entry or not entry.isFocused then return false end
+    local ok, focused = pcall(function() return entry:isFocused() end)
+    return ok and focused == true
+end
+
+local function PV_OnKeyPressed(key)
+    local core = getCore and getCore()
+    if not core or not core.getKey then return end
+
+    local ok, bound = pcall(function() return core:getKey(PV_KEYBIND_NAME) end)
+    if not ok or not bound or bound == 0 or key ~= bound then return end
+
+    local player = getPlayer()
+    if not player or player:isDead() then return end
+    if PV_isTypingInChat() then return end
+
+    -- Toggle: a mesma tecla fecha a janela ja aberta.
+    if PV.UI.UserInstance and PV.UI.UserInstance:isVisible() then
+        PV.UI.UserInstance:close()
+        return
+    end
+
+    if PV.UI.OpenUserManager then PV.UI.OpenUserManager() end
+end
+
+Events.OnKeyPressed.Add(PV_OnKeyPressed)

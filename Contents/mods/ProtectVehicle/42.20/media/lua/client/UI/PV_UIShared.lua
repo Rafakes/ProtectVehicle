@@ -194,3 +194,89 @@ function PV.UI.DrawCenteredWatermark(host, texture, areaX, areaY, areaW, areaH, 
     tint = tint or { r = 1, g = 1, b = 1 }
     host:drawTextureScaled(texture, x, y, drawW, drawH, alpha or 0.1, tint.r or 1, tint.g or 1, tint.b or 1)
 end
+
+-- ============================================================
+-- Localizacao: distancia, direcao e idade da ultima coordenada
+-- ============================================================
+
+-- Direcao de 8 pontos. No PZ, +x e leste e +y e sul.
+-- Cada letra vem traduzida (EN N/S/E/W, PT N/S/L/O), entao as diagonais
+-- saem certas so montando NS .. EW.
+local function PV_dir8(dx, dy)
+    local ax, ay = math.abs(dx), math.abs(dy)
+    if ax < 1 and ay < 1 then return nil end
+
+    local ns = (dy < 0) and getText("UI_PV_Dir_N") or getText("UI_PV_Dir_S")
+    local ew = (dx > 0) and getText("UI_PV_Dir_E") or getText("UI_PV_Dir_W")
+
+    if ax <= ay * 0.5 then return ns end
+    if ay <= ax * 0.5 then return ew end
+    return ns .. ew
+end
+
+--- "142 tiles NO" a partir do jogador, ou nil quando nao da para calcular.
+function PV.UI.FormatDistanceTo(x, y)
+    x, y = tonumber(x), tonumber(y)
+    if not (x and y) then return nil end
+
+    local pl = getPlayer()
+    if not pl then return nil end
+
+    local dx = x - pl:getX()
+    local dy = y - pl:getY()
+    local dist = math.floor(math.sqrt((dx * dx) + (dy * dy)) + 0.5)
+
+    local dir = PV_dir8(dx, dy)
+    if not dir then return getText("UI_PV_User_DistanceHere") end
+    return getText("UI_PV_User_DistanceValue", tostring(dist), dir)
+end
+
+--- "ha 5 min" para um timestamp em segundos, ou nil.
+--- Coordenada velha engana: o carro pode ter sido movido depois.
+-- ============================================================
+-- Corta texto em uma largura, com reticencias
+--
+-- Lua conta bytes, nao caracteres: cortar no meio de um acento deixaria meio
+-- caractere no fim da string. Por isso, depois de encurtar, descartamos os
+-- bytes de continuacao UTF-8 (10xxxxxx) que sobraram soltos.
+-- ============================================================
+function PV.UI.TruncateText(text, maxW, font)
+    if text == nil then return "" end
+    text = tostring(text)
+    font = font or UIFont.NewSmall
+
+    local tm = getTextManager()
+    if tm:MeasureStringX(font, text) <= maxW then return text end
+
+    local ell = "..."
+    local ellW = tm:MeasureStringX(font, ell)
+    local s = text
+    while #s > 0 and (tm:MeasureStringX(font, s) + ellW) > maxW do
+        s = string.sub(s, 1, #s - 1)
+    end
+    while #s > 0 do
+        local b = string.byte(s, #s)
+        if b >= 0x80 and b <= 0xBF then
+            s = string.sub(s, 1, #s - 1)
+        else
+            -- byte inicial de uma sequencia multibyte sem os bytes seguintes
+            if b >= 0xC0 then s = string.sub(s, 1, #s - 1) end
+            break
+        end
+    end
+    return s .. ell
+end
+
+function PV.UI.FormatLocationAge(timestamp)
+    local ts = tonumber(timestamp)
+    if not ts or ts <= 0 then return nil end
+
+    local now = (getTimestamp and getTimestamp()) or os.time()
+    local secs = now - ts
+    if secs < 0 then secs = 0 end
+
+    if secs < 60 then return getText("UI_PV_User_LocAge_Now") end
+    if secs < 3600 then return getText("UI_PV_User_LocAge_Min", tostring(math.floor(secs / 60))) end
+    if secs < 86400 then return getText("UI_PV_User_LocAge_Hour", tostring(math.floor(secs / 3600))) end
+    return getText("UI_PV_User_LocAge_Day", tostring(math.floor(secs / 86400)))
+end

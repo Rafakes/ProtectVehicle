@@ -47,6 +47,16 @@ local function PV_showNoPermission(character)
     end
 end
 
+-- Mesma mensagem de sempre, mais o report para o dono saber da tentativa.
+-- action tem de ser um nome de flag de PV.DEFAULT_FLAGS: o servidor
+-- reconfere essa flag antes de avisar quem quer que seja.
+local function PV_denyAndReport(character, vehicle, action)
+    PV_showNoPermission(character)
+    if PV.reportDeniedAction then
+        pcall(PV.reportDeniedAction, character, vehicle, action)
+    end
+end
+
 local function PV_canOpenVehiclePart(character, vehicle, part)
     if PV.getSimpleBooleanPermission(PV.checkPermission(character, vehicle)) then
         return true
@@ -81,7 +91,7 @@ local function PV_isVehicleActionAllowed(character, vehicle, flagName)
     if PV_canUseFlag(character, vehicle, flagName) then
         return true
     end
-    PV_showNoPermission(character)
+    PV_denyAndReport(character, vehicle, flagName)
     return false
 end
 
@@ -100,7 +110,7 @@ if ISEnterVehicle and ISEnterVehicle.new then
         if PV_canUseFlag(character, vehicle, flagName) then
             return PV._oISEnterVehicle(self, character, vehicle, seat)
         end
-        character:setHaloNote(getText("IGUI_PV_NoPermission"), 250, 100, 100, 300)
+        PV_denyAndReport(character, vehicle, flagName)
         return PV_Deny(character)
     end
 end
@@ -122,7 +132,7 @@ if ISSwitchVehicleSeat and ISSwitchVehicleSeat.new then
         if PV_canUseFlag(character, veh, flagName) then
             return PV._oISSwitchVehicleSeat(self, character, seatTo)
         end
-        character:setHaloNote(getText("IGUI_PV_NoPermission"), 250, 100, 100, 300)
+        PV_denyAndReport(character, veh, flagName)
         return PV_Deny(character)
     end
 end
@@ -144,7 +154,8 @@ if ISVehicleMenu and ISVehicleMenu.FillMenuOutsideVehicle then
         if PV_canOpenVehiclePart(character, vehicle, part) then
             return oldNew(self, character, vehicle, part)
         end
-        character:setHaloNote(getText("IGUI_PV_NoPermission"), 250, 100, 100, 300)
+        local deniedFlag = isTrunkPart(part) and "AllowOpeningTrunk" or "AllowOpeningDoors"
+        PV_denyAndReport(character, vehicle, deniedFlag)
         return PV_Deny(character)
     end
 end
@@ -538,21 +549,21 @@ if ISDeflateTire and ISDeflateTire.isValid then
 end
 
 -- ============================================================
--- AllowScrapVehicle Ã¢â‚¬â€ trÃƒÂªs camadas de proteÃƒÂ§ÃƒÂ£o
+-- AllowScrapVehicle - três camadas de proteção
 --
 -- Camada 1: ISVehicleMenu.onVehicleSalvage (VRO B42)
 --   Ponto de entrada do scrap no Vehicle Repair Overhaul.
---   ISVehicleSalvage ÃƒÂ© a timed action real usada pelo VRO no B42.
+--   ISVehicleSalvage é a timed action real usada pelo VRO no B42.
 --
 -- Camada 2: ISVehicleSalvage.isValid + perform (deep guard VRO)
---   Bloqueia durante a execuÃƒÂ§ÃƒÂ£o mesmo que o menu seja bypassado.
+--   Bloqueia durante a execução mesmo que o menu seja bypassado.
 --
 -- Camada 3: ISScrapVehicle (vanilla fallback)
 --   Mantido para compatibilidade sem VRO.
 -- ============================================================
 
--- Camada 1 + 2: VRO Ã¢â‚¬â€ ISVehicleMenu.onVehicleSalvage + ISVehicleSalvage
--- Hook aplicado via Events.OnGameStart para garantir que VRO jÃƒÂ¡ carregou.
+-- Camada 1 + 2: VRO - ISVehicleMenu.onVehicleSalvage + ISVehicleSalvage
+-- Hook aplicado via Events.OnGameStart para garantir que VRO já carregou.
 local function PV_HookVROSalvage()
     -- onVehicleSalvage: ponto de entrada do menu context do VRO
     if ISVehicleMenu and ISVehicleMenu.onVehicleSalvage and not PV._oISVehicleMenu_onVehicleSalvage then
@@ -569,7 +580,7 @@ local function PV_HookVROSalvage()
         end
     end
 
-    -- ISVehicleSalvage.isValid: bloqueia durante a aÃƒÂ§ÃƒÂ£o (deep guard)
+    -- ISVehicleSalvage.isValid: bloqueia durante a ação (deep guard)
     if ISVehicleSalvage and ISVehicleSalvage.isValid and not PV._oISVehicleSalvage_isValid then
         PV._oISVehicleSalvage_isValid = ISVehicleSalvage.isValid
 
@@ -581,7 +592,7 @@ local function PV_HookVROSalvage()
         end
     end
 
-    -- ISVehicleSalvage.perform: ÃƒÂºltima barreira antes do vehicle:remove
+    -- ISVehicleSalvage.perform: última barreira antes do vehicle:remove
     if ISVehicleSalvage and ISVehicleSalvage.perform and not PV._oISVehicleSalvage_perform then
         PV._oISVehicleSalvage_perform = ISVehicleSalvage.perform
 
@@ -599,6 +610,27 @@ local function PV_HookVROSalvage()
 end
 
 Events.OnGameStart.Add(PV_HookVROSalvage)
+
+-- Camada 0: ISScrapVehicle.new (bloqueia antes de enfileirar a timed action,
+-- com halo note imediato). Vinha de shared/PV_Overrides.lua, removido por ser
+-- copia duplicada deste arquivo.
+if ISScrapVehicle and ISScrapVehicle.new and not PV._oISScrapVehicle_new then
+    PV._oISScrapVehicle_new = ISScrapVehicle.new
+
+    function ISScrapVehicle:new(character, vehicle, ...)
+        -- Veiculo nao identificado: deixa passar (as camadas abaixo ainda checam)
+        if not vehicle then
+            return PV._oISScrapVehicle_new(self, character, vehicle, ...)
+        end
+        if PV_canUseFlag(character, vehicle, "AllowScrapVehicle") then
+            return PV._oISScrapVehicle_new(self, character, vehicle, ...)
+        end
+        if character then
+            character:setHaloNote(getText("IGUI_PV_NoPermission"), 250, 100, 100, 300)
+        end
+        return PV_Deny(character)
+    end
+end
 
 -- Camada 3: ISScrapVehicle (vanilla / mods sem VRO)
 if ISScrapVehicle then
@@ -628,20 +660,20 @@ if ISScrapVehicle then
 end
 
 -- ============================================================
--- ISInventoryTransferAction override (mover item de container de veÃƒÂ­culo)
+-- ISInventoryTransferAction override (mover item de container de veículo)
 -- ============================================================
--- Este override estÃƒÂ¡ em PV_ISInventoryTransferAction.lua
+-- Este override está em PV_ISInventoryTransferAction.lua
 
 -- ============================================================
--- Bloqueio de abertura de inventÃƒÂ¡rio de veÃƒÂ­culo (context menu "Open")
--- B42: ISVehicleMenu.FillMenuOutsideVehicle adiciona opÃƒÂ§ÃƒÂµes de "Open Trunk",
--- "Search Vehicle" etc. Precisamos filtrar essas opÃƒÂ§ÃƒÂµes para containers
+-- Bloqueio de abertura de inventário de veículo (context menu "Open")
+-- B42: ISVehicleMenu.FillMenuOutsideVehicle adiciona opções de "Open Trunk",
+-- "Search Vehicle" etc. Precisamos filtrar essas opções para containers
 -- bloqueados. Fazemos isso interceptando DEPOIS do original para remover
--- opÃƒÂ§ÃƒÂµes proibidas do context menu.
+-- opções proibidas do context menu.
 -- ============================================================
 do
-    -- Salva referÃƒÂªncia ao original (jÃƒÂ¡ pode ter sido hooked por PV_Client.lua)
-    -- Usamos um nome diferente para nÃƒÂ£o conflitar com PV.oFillMenuOutsideVehicle
+    -- Salva referência ao original (já pode ter sido hooked por PV_Client.lua)
+    -- Usamos um nome diferente para não conflitar com PV.oFillMenuOutsideVehicle
     local _pvOrigFillMenuFull = ISVehicleMenu.FillMenuOutsideVehicle
 
     local function _isVehicleContainerAllowed(playerObj, vehicle)
@@ -654,10 +686,10 @@ do
         return PV_canUseFlag(playerObj, vehicle, "AllowContainersAccess")
     end
 
-    -- Palavras-chave dos textos de menu que abrem containers (inglÃƒÂªs + portuguÃƒÂªs)
-    -- Cobrimos "Open", "Search", "Loot", "Take All" referentes a partes do veÃƒÂ­culo
+    -- Palavras-chave dos textos de menu que abrem containers (inglês + português)
+    -- Cobrimos "Open", "Search", "Loot", "Take All" referentes a partes do veículo
     local _containerMenuKeywords = {
-        "open",         -- Open Trunk, Open Door (pode levar ao inventÃƒÂ¡rio)
+        "open",         -- Open Trunk, Open Door (pode levar ao inventário)
         "search",       -- Search Vehicle
         "loot",         -- Loot All
         "take all",     -- Take All Items
@@ -676,7 +708,7 @@ do
         return false
     end
 
-    -- Palavras-chave para opÃƒÂ§ÃƒÂµes de scrap/salvage no context menu.
+    -- Palavras-chave para opções de scrap/salvage no context menu.
     -- "salvage" cobre o texto do VRO (ContextMenu_SalvageVehicle = "Salvage Vehicle").
     -- "scrap" cobre o vanilla e mods sem VRO.
     -- B42 vanilla key: ContextMenu_Mechanics → EN="Mechanics", PTBR="Mecânica"
@@ -811,26 +843,26 @@ local function PV_HookMechanicsMenu()
 end
 
 Events.OnGameStart.Add(PV_HookMechanicsMenu)
--- Bloqueia o botÃƒÂ£o "Entrar no RV" no menu radial para jogadores
--- sem permissÃƒÂ£o AllowEnterRV no veÃƒÂ­culo protegido.
--- SÃƒÂ³ aplica se o mod RVInterior estiver carregado.
+-- Bloqueia o botão "Entrar no RV" no menu radial para jogadores
+-- sem permissão AllowEnterRV no veículo protegido.
+-- Só aplica se o mod RVInterior estiver carregado.
 -- ============================================================
 local function PV_HookRVMenu()
     if PV._pvHookedRVMenu then return end  -- guard contra duplo-hook (shared/ + client/)
     if not ISVehicleMenu or not ISVehicleMenu.showRadialMenu then return end
-    if not VehicleTypes then return end  -- RVInterior nÃƒÂ£o carregado
+    if not VehicleTypes then return end  -- RVInterior não carregado
     PV._pvHookedRVMenu = true
 
     local RV_originalShowRadialMenu = ISVehicleMenu.showRadialMenu
 
     function ISVehicleMenu.showRadialMenu(player, ...)
-        -- FIX CRÃƒÂTICO: checar permissÃƒÂ£o ANTES de chamar o original.
+        -- FIX CRÍTICO: checar permissão ANTES de chamar o original.
         -- O original (RVInterior) adiciona o slice de "Entrar no RV" internamente.
-        -- Se chamarmos o original primeiro, o slice jÃƒÂ¡ foi adicionado e nÃƒÂ£o hÃƒÂ¡ como remover.
-        -- SoluÃƒÂ§ÃƒÂ£o: verificar permissÃƒÂ£o agora e apenas chamar o original se permitido,
+        -- Se chamarmos o original primeiro, o slice já foi adicionado e não há como remover.
+        -- Solução: verificar permissão agora e apenas chamar o original se permitido,
         -- ou remover o slice de RV do menu depois (se a API permitir).
 
-        -- B42.16: `player` pode ser IsoPlayer ou ÃƒÂ­ndice numÃƒÂ©rico dependendo da versÃƒÂ£o
+        -- B42.16: `player` pode ser IsoPlayer ou índice numérico dependendo da versão
         local playerObj, playerNum
         if type(player) == "number" then
             playerNum = player
@@ -851,7 +883,7 @@ local function PV_HookRVMenu()
             return
         end
 
-        -- Verificar se ÃƒÂ© veÃƒÂ­culo RV
+        -- Verificar se é veículo RV
         local vehicleScriptName = tostring(vehicle:getScript():getFullName())
         local isRVVehicle = false
         for _, def in pairs(VehicleTypes) do
@@ -866,7 +898,7 @@ local function PV_HookRVMenu()
             if isRVVehicle then break end
         end
 
-        -- NÃƒÂ£o ÃƒÂ© RV: chama original normalmente
+        -- Não é RV: chama original normalmente
         if not isRVVehicle then
             RV_originalShowRadialMenu(player, ...)
             return
@@ -879,11 +911,11 @@ local function PV_HookRVMenu()
         end
 
         if allowed then
-            -- PermissÃƒÂ£o concedida: chama original (ele adiciona o slice de RV)
+            -- Permissão concedida: chama original (ele adiciona o slice de RV)
             RV_originalShowRadialMenu(player, ...)
         else
             -- BLOQUEADO: precisamos chamar o original mas sem o slice de RV.
-            -- EstratÃƒÂ©gia: substituir temporariamente a funÃƒÂ§ÃƒÂ£o de addSlice de RV para ser no-op,
+            -- Estratégia: substituir temporariamente a função de addSlice de RV para ser no-op,
             -- depois restaurar. Isso previne que o RVInterior adicione o slice.
             local menu = getPlayerRadialMenu and getPlayerRadialMenu(playerObj:getPlayerNum())
             if menu and menu.addSlice then
@@ -891,7 +923,7 @@ local function PV_HookRVMenu()
                 local blocked = false
                 -- Interceptar chamadas de addSlice que sejam do RV (texto identificador)
                 menu.addSlice = function(m, label, texture, fn, ...)
-                    -- Identificar slice do RV pelo texto de traduÃƒÂ§ÃƒÂ£o
+                    -- Identificar slice do RV pelo texto de tradução
                     local rvLabel = getText and getText("ContextMenu_GetInToRV") or "GetInToRV"
                     if label == rvLabel then
                         blocked = true
@@ -912,6 +944,6 @@ local function PV_HookRVMenu()
     end
 end
 
--- Hook depois que o mundo inicia (garante que VehicleTypes jÃƒÂ¡ foi carregado pelo RVInterior)
+-- Hook depois que o mundo inicia (garante que VehicleTypes já foi carregado pelo RVInterior)
 Events.OnInitWorld.Add(PV_HookRVMenu)
 

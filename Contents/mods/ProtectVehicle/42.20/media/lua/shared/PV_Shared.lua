@@ -35,6 +35,73 @@ end
 -- ============================================================
 -- Vehicle display name helper
 -- ============================================================
+PV.NICKNAME_MAX_CHARS = 24
+
+-- ============================================================
+-- Saneamento do apelido
+--
+-- O apelido e texto livre vindo do cliente e aparece no painel do dono, no
+-- painel de admin e nos logs. Tres coisas precisam sair:
+--
+-- 1. Caracteres de controle, que quebrariam uma linha de log ou de lista.
+-- 2. O "%". Nome de veiculo ja chega a um setTooltip no sistema de documento,
+--    e na B42 o texto de tooltip passa por String.format: um "%" cru lanca
+--    excecao a cada frame de render. Em vez de confiar que todo consumidor
+--    futuro vai escapar, o caractere nao entra.
+-- 3. Comprimento. O corte conta CARACTERES, nao bytes: cortar no meio de um
+--    acento deixaria meio caractere no fim.
+--
+-- Devolve nil quando nao sobra nada util - o chamador trata isso como
+-- "apagar o apelido".
+-- ============================================================
+function PV.sanitizeNickname(raw)
+    if type(raw) ~= "string" then return nil end
+
+    local out = {}
+    local chars = 0
+    local i = 1
+    local n = #raw
+    while i <= n do
+        local b = string.byte(raw, i)
+        -- tamanho da sequencia UTF-8 que comeca neste byte
+        local len = 1
+        if b >= 0xF0 then len = 4
+        elseif b >= 0xE0 then len = 3
+        elseif b >= 0xC0 then len = 2
+        end
+        local piece = string.sub(raw, i, i + len - 1)
+        i = i + len
+
+        local keep = true
+        if len == 1 then
+            if b < 32 or b == 127 then keep = false end   -- controle
+            if piece == "%" then keep = false end         -- format string
+        end
+
+        if keep then
+            if chars >= PV.NICKNAME_MAX_CHARS then break end
+            out[#out + 1] = piece
+            chars = chars + 1
+        end
+    end
+
+    local text = table.concat(out)
+    text = text:gsub("%s+", " ")          -- espacos repetidos viram um
+    text = text:match("^%s*(.-)%s*$")     -- tira das pontas
+    if text == "" then return nil end
+    return text
+end
+
+-- ============================================================
+-- Nome para mostrar: o apelido do dono quando existe, senao o modelo.
+-- ============================================================
+function PV.getEntryDisplayName(entry)
+    if type(entry) ~= "table" then return "?" end
+    local nick = entry.Nickname
+    if type(nick) == "string" and nick ~= "" then return nick end
+    return PV.getVehicleDisplayNameFromModel(entry.CarModel)
+end
+
 function PV.getVehicleDisplayNameFromModel(rawModel)
     if rawModel == nil then return "?" end
     rawModel = tostring(rawModel)
@@ -400,11 +467,27 @@ end
 -- ============================================================
 -- Max claim check
 -- ============================================================
-function PV.getClaimLimit(playerObj)
+--- Limite da role, sem contar slot alugado.
+function PV.getBaseClaimLimit(playerObj)
     if PV.isSupporterPlayer(playerObj) then
         return (SandboxVars.ProtectVehicle and SandboxVars.ProtectVehicle.MaxVehicleSupporter) or 6
     end
     return (SandboxVars.ProtectVehicle and SandboxVars.ProtectVehicle.MaxVehicle) or 3
+end
+
+--- Slots extras (aluguel + carencia). Quem resolve de verdade e cada lado:
+--- o servidor le o ModData PVClaimSlots, o cliente le o que recebeu sobre si
+--- mesmo. Sem resolvedor, zero - entao o mod funciona igual a antes se o
+--- aluguel estiver desligado ou a loja nao estiver instalada.
+function PV.getBonusSlots(playerObj)
+    if type(PV.resolveBonusSlots) ~= "function" then return 0 end
+    local ok, n = pcall(PV.resolveBonusSlots, playerObj)
+    if ok and type(n) == "number" and n > 0 then return math.floor(n) end
+    return 0
+end
+
+function PV.getClaimLimit(playerObj)
+    return PV.getBaseClaimLimit(playerObj) + PV.getBonusSlots(playerObj)
 end
 
 function PV.getClaimCount(playerObj)

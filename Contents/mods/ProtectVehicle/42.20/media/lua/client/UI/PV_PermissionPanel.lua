@@ -9,7 +9,7 @@
     
     FIXED:
     - onSave agora funciona corretamente com fallback seguro
-    - ProteÃ§Ã£o contra chamadas de funÃ§Ãµes nÃ£o disponÃ­veis
+    - Proteção contra chamadas de funções não disponíveis
 --]]
 
 if not isClient() and isServer() then return end
@@ -25,7 +25,7 @@ local FONT_HGT_MEDIUM = getTextManager():getFontHeight(UIFont.NewMedium)
 local PAD_TOP = FONT_HGT_SMALL + 1
 
 -- ============================================================
--- Flag definitions (key â†’ translation key â†’ description key)
+-- Flag definitions (key -> translation key -> description key)
 -- ============================================================
 local FLAG_DEFS = {
     { key = "AllowDrive",           label = "UI_PV_Flag_Drive",        desc = "IGUI_PV_FlagDesc_Drive"        },
@@ -70,7 +70,7 @@ function PV.UI.PermissionPanel:createChildren()
         local tm = getTextManager()
         local w = tm:MeasureStringX(font, txt)
         if w <= maxW then return txt end
-        local ell = "â€¦" 
+        local ell = "..." 
         local ellW = tm:MeasureStringX(font, ell)
         local s = txt
         while #s > 0 and (tm:MeasureStringX(font, s) + ellW) > maxW do
@@ -161,7 +161,7 @@ function PV.UI.PermissionPanel:createChildren()
     self.lblMode:initialise(); self.lblMode:instantiate()
     self.cardInfo:addChild(self.lblMode)
 
-    -- FIXED: Criando closures locais para os callbacks dos botÃµes
+    -- FIXED: Criando closures locais para os callbacks dos botões
     local panelRef = self
     local function onSaveClick(btn)
         panelRef:onSave(btn)
@@ -305,7 +305,7 @@ function PV.UI.PermissionPanel:onToggled(index, selected)
 end
 
 function PV.UI.PermissionPanel:onSave(btn)
-    -- FIXED: ProteÃ§Ã£o mais robusta e fallback seguro
+    -- FIXED: Proteção mais robusta e fallback seguro
     local newFlags = {}
     
     if self.flagsWorking and type(self.flagsWorking) == "table" then
@@ -323,12 +323,12 @@ function PV.UI.PermissionPanel:onSave(btn)
         end
     end
 
-    -- FIXED: ProteÃ§Ã£o contra funÃ§Ãµes nÃ£o disponÃ­veis
+    -- FIXED: Proteção contra funções não disponíveis
     if self.targetPlayer == nil then
         -- Public flags
         local delta = newFlags
         
-        -- Tentar usar computeFlagsDelta se disponÃ­vel
+        -- Tentar usar computeFlagsDelta se disponível
         if PV.computeFlagsDelta and type(PV.computeFlagsDelta) == "function" then
             local ok, result = pcall(PV.computeFlagsDelta, self.sqlid, newFlags)
             if ok and type(result) == "table" then

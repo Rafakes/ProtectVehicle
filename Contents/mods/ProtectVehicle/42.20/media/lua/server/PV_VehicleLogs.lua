@@ -169,6 +169,26 @@ function PV.Log.actionDenied(playerObj, vehicleObj, sqlid, action)
         "' | coords " .. coords, "SECURITY")
 end
 
+-- intrusion: ocupante sem permissao detectado pelo sweep do servidor.
+-- Sempre echa no console (forceConsole=true): e evento de seguranca.
+function PV.Log.intrusion(playerObj, vehicleObj, sqlid, ownerID, seat)
+    local username = "UNKNOWN"
+    local coords   = "(?,?,?)"
+    if playerObj and playerObj.getUsername then
+        pcall(function() username = playerObj:getUsername() end)
+    end
+    pcall(function()
+        coords = "(" .. math.floor(vehicleObj:getX()) .. ","
+                     .. math.floor(vehicleObj:getY()) .. ","
+                     .. math.floor(vehicleObj:getZ()) .. ")"
+    end)
+    PV.Log.writeVehicle(sqlid,
+        "INTRUSION DETECTED | occupant '" .. username ..
+        "' | seat " .. tostring(seat) ..
+        " | owner '" .. tostring(ownerID) ..
+        "' | coords " .. coords, "SECURITY", true)
+end
+
 -- adminAction sempre aparece no console (forceConsole=true)
 function PV.Log.adminAction(adminObj, sqlid, action, details)
     local adminName = "UNKNOWN"
@@ -180,11 +200,36 @@ function PV.Log.adminAction(adminObj, sqlid, action, details)
         "' | " .. tostring(details or ""), "ADMIN", true)
 end
 
+-- transfer: troca de dono. Sempre no console, como claim e unclaim.
+function PV.Log.transfer(sqlid, oldOwner, newOwner, byWhom)
+    PV.Log.writeVehicle(sqlid,
+        "TRANSFER owner '" .. tostring(oldOwner) ..
+        "' -> '" .. tostring(newOwner) ..
+        "' by '" .. tostring(byWhom) .. "'", "INFO", true)
+end
+
+--- rename: fica no arquivo do veiculo. Serve para o admin reconstruir quem
+--- era quem quando um jogador renomeia o carro para confundir numa denuncia.
+function PV.Log.rename(sqlid, byWhom, oldName, newName)
+    PV.Log.writeVehicle(sqlid,
+        "RENAME '" .. tostring(oldName or "-") ..
+        "' -> '" .. tostring(newName or "-") ..
+        "' by '" .. tostring(byWhom) .. "'", "INFO")
+end
+
 -- timeout: arquivo sempre, console sem force (evento automatico, nao critico)
 function PV.Log.timeout(sqlid, owner, lastLogoff)
     PV.Log.writeVehicle(sqlid,
         "AUTO-UNCLAIM timeout | owner '" .. tostring(owner) ..
         "' | lastLogoff=" .. tostring(lastLogoff), "INFO")
+end
+
+-- autoUnclaim: unclaim automatico por motivo que nao e timeout
+-- (sucata/queimado). Sempre echa no console: libera um slot do jogador.
+function PV.Log.autoUnclaim(sqlid, owner, reason)
+    PV.Log.writeVehicle(sqlid,
+        "AUTO-UNCLAIM " .. tostring(reason) ..
+        " | owner '" .. tostring(owner) .. "'", "INFO", true)
 end
 
 -- coordSync: gateado por EnableCoordSyncLogs; nunca echa no console

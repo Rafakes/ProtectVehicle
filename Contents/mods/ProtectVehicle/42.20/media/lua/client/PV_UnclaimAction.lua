@@ -1,6 +1,6 @@
 --[[
     ProtectVehicle - PV_UnclaimAction.lua
-    Timed action para remover proteÃ§Ã£o de veÃ­culo (5 segundos).
+    Timed action para remover proteção de veículo (5 segundos).
     Timed action de unclaim do ProtectVehicle.
     B42.14.x
 --]]
@@ -43,7 +43,7 @@ end
 
 function ISPVUnclaimAction:getDuration()
     if self.character:isTimedActionInstant() then return 1 end
-    return 300  -- 300 ticks = 6 segundos (mesmo padrÃ£o do claim: 300)
+    return 300  -- 300 ticks = 6 segundos (mesmo padrão do claim: 300)
 end
 
 function ISPVUnclaimAction:new(character, vehicle, sqlid)

@@ -677,7 +677,7 @@ local function PV_addConvertToDocOption(playerObj, context, vehicle)
         end
     end
 
-    -- Minimum overall condition check (visual hint only â€” server enforces)
+    -- Minimum overall condition check (visual hint only - server enforces)
     if sv then
         local minCondition = tonumber(sv.MinVehicleConditionForConversion) or 0
         if minCondition > 0 then
