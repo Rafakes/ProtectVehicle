@@ -600,6 +600,27 @@ end
 
 Events.OnGameStart.Add(PV_HookVROSalvage)
 
+-- Camada 0: ISScrapVehicle.new (bloqueia antes de enfileirar a timed action,
+-- com halo note imediato). Vinha de shared/PV_Overrides.lua, removido por ser
+-- copia duplicada deste arquivo.
+if ISScrapVehicle and ISScrapVehicle.new and not PV._oISScrapVehicle_new then
+    PV._oISScrapVehicle_new = ISScrapVehicle.new
+
+    function ISScrapVehicle:new(character, vehicle, ...)
+        -- Veiculo nao identificado: deixa passar (as camadas abaixo ainda checam)
+        if not vehicle then
+            return PV._oISScrapVehicle_new(self, character, vehicle, ...)
+        end
+        if PV_canUseFlag(character, vehicle, "AllowScrapVehicle") then
+            return PV._oISScrapVehicle_new(self, character, vehicle, ...)
+        end
+        if character then
+            character:setHaloNote(getText("IGUI_PV_NoPermission"), 250, 100, 100, 300)
+        end
+        return PV_Deny(character)
+    end
+end
+
 -- Camada 3: ISScrapVehicle (vanilla / mods sem VRO)
 if ISScrapVehicle then
     if ISScrapVehicle.isValid and not PV._oISScrapVehicle_isValid then
