@@ -245,6 +245,10 @@ function PV.UI.UserManagerMain:onSelectionChange()
         if self.lblExpiresVal then
             self.lblExpiresVal:setName(_docValidityText(docEntry))
         end
+        -- Titulo nao tem coordenada viva; lblLocationVal mostra o status do
+        -- documento, entao updateLocationRows tem de ficar fora.
+        if self.lblDistanceVal then self.lblDistanceVal:setName("-") end
+        self.locSqlid = nil
         -- Keep 3D preview for titles when scriptName is available in doc entry.
         local docModel = (docEntry and (docEntry.scriptName or docEntry.CarModel)) or ""
         self:setVehiclePreviewModel(docModel)
@@ -392,20 +396,56 @@ function PV.UI.UserManagerMain:updateInfoPanel(sqlid)
         self.lblLocationVal:setName("â€”")
         self.lblClaimedVal:setName("â€”")
         self.lblExpiresVal:setName("â€”")
+        if self.lblDistanceVal then self.lblDistanceVal:setName("-") end
+        self.locSqlid = nil
         return
     end
     local rawModel = data.CarModel or ""
     local carName  = PV.getVehicleDisplayNameFromModel(rawModel)
-    local loc = (data.LastLocationX and data.LastLocationY)
-                and (tostring(data.LastLocationX) .. ", " .. tostring(data.LastLocationY))
-                or "?"
     local claimedDate = data.ClaimDateTime and os.date("%d-%b-%y %H:%M", data.ClaimDateTime) or "?"
     local expiryText = calcExpiryUser(data.OwnerPlayerID or "")
     
     self.lblCarNameVal:setName(carName)
-    self.lblLocationVal:setName(loc)
     self.lblClaimedVal:setName(claimedDate)
     self.lblExpiresVal:setName(expiryText)
+
+    -- Localizacao e distancia ficam em updateLocationRows: o prerender do
+    -- painel as refaz enquanto o jogador se move.
+    self.locSqlid = sqlid
+    self:updateLocationRows()
+end
+
+-- ============================================================
+-- Linhas de localizacao e distancia
+--
+-- Separadas de updateInfoPanel porque mudam sozinhas: as coordenadas
+-- chegam do servidor pelo sync e a distancia muda com o jogador andando.
+-- locSqlid = nil (titulo selecionado, ou nada) significa nao mexer nas
+-- labels, que nesse caso mostram o estado do documento.
+-- ============================================================
+function PV.UI.UserManagerMain:updateLocationRows()
+    if not self.lblLocationVal then return end
+
+    local data = self.locSqlid and PV.getVehicleDBEntry(self.locSqlid) or nil
+    if not data then return end
+
+    local x = tonumber(data.LastLocationX)
+    local y = tonumber(data.LastLocationY)
+    if not (x and y) then
+        self.lblLocationVal:setName("?")
+        if self.lblDistanceVal then self.lblDistanceVal:setName("-") end
+        return
+    end
+
+    local locText = tostring(math.floor(x)) .. ", " .. tostring(math.floor(y))
+    local age = PV.UI.FormatLocationAge and PV.UI.FormatLocationAge(data.LastLocationUpdateDateTime)
+    if age then locText = locText .. "  (" .. age .. ")" end
+    self.lblLocationVal:setName(locText)
+
+    if self.lblDistanceVal then
+        local dist = PV.UI.FormatDistanceTo and PV.UI.FormatDistanceTo(x, y)
+        self.lblDistanceVal:setName(dist or "-")
+    end
 end
 
 -- ============================================================
@@ -743,10 +783,20 @@ function PV.UI.UserManagerMain:buildLayout()
     self.infoPanel.backgroundColor = { r=0, g=0, b=0, a=0 }
     self.infoPanel.borderColor = { r=0, g=0, b=0, a=0 }
     self.infoPanel:initialise(); self.infoPanel:instantiate()
+    local ownerWindow = self
+    local lastLocRefreshMs = 0
     self.infoPanel.prerender = function(panel)
         local bg = c.listAltBg
         panel:drawRect(0, 0, panel.width, panel.height, 0.55, bg.r, bg.g, bg.b)
         panel:drawRectBorder(0, 0, panel.width, panel.height, 1, c.cardBorder.r, c.cardBorder.g, c.cardBorder.b)
+
+        -- Distancia e idade mudam enquanto o jogador anda: refaz no maximo
+        -- 1x por segundo, nao a cada frame.
+        local nowMs = (getTimestampMs and getTimestampMs()) or 0
+        if nowMs - lastLocRefreshMs >= 1000 then
+            lastLocRefreshMs = nowMs
+            ownerWindow:updateLocationRows()
+        end
     end
     self.cardStats:addChild(self.infoPanel)
 
@@ -766,6 +816,7 @@ function PV.UI.UserManagerMain:buildLayout()
     self.lblLocationVal = addInfoRow(infoTop + rowH,       "UI_PV_User_Location",  0.55, 0.90, 0.55)
     self.lblClaimedVal  = addInfoRow(infoTop + rowH * 2,   "UI_PV_User_Claimed",   0.80, 0.80, 0.88)
     self.lblExpiresVal  = addInfoRow(infoTop + rowH * 3,   "UI_PV_User_ExpiresIn", 0.95, 0.70, 0.30)
+    self.lblDistanceVal = addInfoRow(infoTop + rowH * 4,   "UI_PV_User_Distance",  0.70, 0.85, 0.95)
 
     -- ---- ALLOW LIST CARD ----
     self.cardAllow = PV.UI.CardPanel:new(rightX, midY, rightW, midH, getText("UI_PV_Section_AllowList"))
