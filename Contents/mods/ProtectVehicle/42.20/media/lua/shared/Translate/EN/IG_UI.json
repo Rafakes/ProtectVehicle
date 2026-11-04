@@ -1,6 +1,8 @@
 {
     "IGUI_PV_NoPermission": "Access Denied: You do not have permission for this vehicle.",
     "IGUI_PV_NoPermission_RV": "Access Denied: You do not have permission to enter this RV interior.",
+    "IGUI_PV_Warn_Unprotected": "Unprotected vehicle: any player can steal it. Use Protect Vehicle to claim it.",
+    "IGUI_PV_Warn_Unprotected_Doc": "Unprotected vehicle: any player can steal it. Use a Vehicle Document to claim it.",
     "IGUI_PV_MissingDocument": "You need a Vehicle Document to claim this vehicle.",
     "IGUI_PV_LimitReached": "You have reached the maximum number of claimed vehicles.",
     "IGUI_PV_Error_DBNotReady": "Database not ready. Please try again in a moment.",

@@ -102,6 +102,12 @@ option ProtectVehicle.EnableVerboseConsoleLogs
 		page = ProtectVehicle, translation = PV_EnableVerboseConsoleLogs,
 }
 
+option ProtectVehicle.WarnUnprotectedVehicle
+{
+		type = boolean, default = true,
+		page = ProtectVehicle, translation = PV_WarnUnprotectedVehicle,
+}
+
 option ProtectVehicle.RequireConversionDocument
 {
 		type = boolean, default = false,

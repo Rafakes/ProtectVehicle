@@ -377,15 +377,71 @@ Events.OnReceiveGlobalModData.Add(PV.OnReceiveGlobalModData)
 --   dispara o sync. Custo mÃ­nimo: apenas 2 comparaÃ§Ãµes por tick.
 -- ============================================================
 
+-- ============================================================
+-- AVISO: veiculo sem protecao
+--
+-- Ao entrar num veiculo que nao esta protegido pelo mod
+-- (sem SQLID, ou SQLID orfao sem entrada no DB) mostra um
+-- halo note avisando que qualquer jogador pode roubar o carro.
+--
+-- Nao avisa quando o DB ainda nao chegou ao cliente: nesse
+-- caso nao da para saber se o veiculo tem dono.
+-- Cooldown por veiculo para nao repetir a cada entrada.
+-- ============================================================
+local PV_UNPROTECTED_WARN_COOLDOWN_MS = 300000  -- 5 min de tempo real por veiculo
+local _pvUnprotectedWarnAt = {}
+
+local function PV_nowMs()
+    if getTimestampMs then return getTimestampMs() end
+    if getTimestamp then return getTimestamp() * 1000 end
+    return 0
+end
+
+--- true quando o veiculo nao tem protecao do mod (livre para qualquer um).
+function PV.isVehicleUnprotected(vehicleObj)
+    if not vehicleObj then return false end
+    -- DB ainda nao sincronizado: fica em silencio em vez de avisar errado.
+    if type(PV.dbByVehicleSQLID) ~= "table" then return false end
+    local sqlid = PV.getVehicleID and PV.getVehicleID(vehicleObj) or nil
+    if sqlid == nil then return true end
+    return PV.getVehicleDBEntry(sqlid) == nil
+end
+
+function PV.warnIfVehicleUnprotected(playerObj, vehicleObj)
+    local sv = SandboxVars.ProtectVehicle
+    if sv and sv.WarnUnprotectedVehicle == false then return end
+    if not playerObj or not vehicleObj then return end
+    if playerObj ~= getPlayer() then return end
+    if not PV.isVehicleUnprotected(vehicleObj) then return end
+
+    local now = PV_nowMs()
+    local key = vehicleObj.getId and vehicleObj:getId() or nil
+    if key ~= nil then
+        local last = _pvUnprotectedWarnAt[key]
+        if last and (now - last) < PV_UNPROTECTED_WARN_COOLDOWN_MS then return end
+        _pvUnprotectedWarnAt[key] = now
+    end
+
+    local requiresDoc = sv and sv.RequireVehicleDocumentForClaim == true
+    local msgKey = requiresDoc and "IGUI_PV_Warn_Unprotected_Doc" or "IGUI_PV_Warn_Unprotected"
+    playerObj:setHaloNote(getText(msgKey), 255, 200, 80, 400)
+end
+
 -- ENTRADA: override ISEnterVehicle:perform()
 if ISEnterVehicle then
     local _oPVEnterPerform = ISEnterVehicle.perform
     function ISEnterVehicle:perform()
         _oPVEnterPerform(self)
-        -- Dispara sync apÃ³s entrar no veÃ­culo
         local veh = self.vehicle
         if not veh or not self.character then return end
         if self.character ~= getPlayer() then return end
+
+        -- Aviso de veiculo sem protecao (so no assento do motorista)
+        if type(self.seat) ~= "number" or self.seat == 0 then
+            pcall(PV.warnIfVehicleUnprotected, self.character, veh)
+        end
+
+        -- Dispara sync apos entrar no veiculo
         if not PV.dbByVehicleSQLID then return end
         local sqlid = PV.getVehicleID and PV.getVehicleID(veh)
         if sqlid and PV.getVehicleDBEntry(sqlid) then
